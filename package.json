@@ -1,0 +1,16 @@
+{
+  "name": "bolas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "./scripts/build.sh",
+    "check": "biome check src tests && ./scripts/check.sh",
+    "format": "biome format --write src tests",
+    "run": "./scripts/run.sh",
+    "test": "./scripts/test.sh"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.11"
+  }
+}

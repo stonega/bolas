@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/vnd.io.github.stonega.bolas.workspace">
+    <comment>Bolas media workspace</comment>
+    <generic-icon name="image-x-generic"/>
+    <icon name="io.github.stonega.Bolas"/>
+    <glob pattern="*.bolas" weight="80"/>
+    <magic priority="80">
+      <match type="string" value="BOLASWS" offset="0"/>
+    </magic>
+  </mime-type>
+</mime-info>

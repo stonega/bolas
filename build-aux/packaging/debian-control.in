@@ -1,0 +1,13 @@
+Package: bolas
+Version: @VERSION@
+Section: graphics
+Priority: optional
+Architecture: all
+Installed-Size: @INSTALLED_SIZE@
+Maintainer: Bolas maintainers <noreply@github.com>
+Depends: gjs (>= 1.80), gir1.2-adw-1 (>= 1.6), gir1.2-gdkpixbuf-2.0, gir1.2-graphene-1.0, gir1.2-gtk-4.0 (>= 4.14), gir1.2-pango-1.0, libgtk-4-media-gstreamer, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, ffmpeg, libglib2.0-bin, shared-mime-info, hicolor-icon-theme
+Recommends: desktop-file-utils, libgtk-4-bin, gstreamer1.0-libav, xdg-desktop-portal, xdg-desktop-portal-gnome
+Homepage: https://github.com/stonega/bolas
+Description: Native GNOME screenshot and video editor
+ Capture and annotate screenshots, compose share images, and edit screen
+ recordings with trim, zoom, captions, blur masks, and WebM export.

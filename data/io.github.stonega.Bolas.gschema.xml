@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="bolas">
+  <schema id="io.github.stonega.Bolas" path="/io/github/stonega/Bolas/">
+    <key name="editor-tool" type="s">
+      <choices>
+        <choice value="select"/>
+        <choice value="pencil"/>
+        <choice value="line"/>
+        <choice value="arrow"/>
+        <choice value="rectangle"/>
+        <choice value="ellipse"/>
+        <choice value="text"/>
+      </choices>
+      <default>'select'</default>
+      <summary>Last annotation tool</summary>
+    </key>
+    <key name="editor-stroke-color" type="s">
+      <choices>
+        <choice value="#1c1c1c"/>
+        <choice value="#9aa6b2"/>
+        <choice value="#d56ef2"/>
+        <choice value="#b635c8"/>
+        <choice value="#3b5bdb"/>
+        <choice value="#4a9ee8"/>
+        <choice value="#f4ab49"/>
+        <choice value="#e45a17"/>
+        <choice value="#07996f"/>
+        <choice value="#49b568"/>
+        <choice value="#f47476"/>
+        <choice value="#e52f36"/>
+      </choices>
+      <default>'#e52f36'</default>
+      <summary>Last annotation color</summary>
+    </key>
+    <key name="editor-fill-enabled" type="b">
+      <default>false</default>
+      <summary>Whether shape fill was last enabled</summary>
+    </key>
+    <key name="editor-stroke-width" type="d">
+      <range min="0.0025" max="0.022"/>
+      <default>0.006</default>
+      <summary>Last annotation stroke width</summary>
+    </key>
+    <key name="editor-font-family" type="s">
+      <default>'Sans'</default>
+      <summary>Last annotation text font family</summary>
+    </key>
+    <key name="editor-font-size" type="d">
+      <range min="0.03" max="0.09"/>
+      <default>0.06</default>
+      <summary>Last annotation text size</summary>
+    </key>
+    <key name="editor-crop-ratio" type="s">
+      <choices>
+        <choice value="free"/>
+        <choice value="original"/>
+        <choice value="square"/>
+        <choice value="5:4"/>
+        <choice value="4:3"/>
+        <choice value="3:2"/>
+        <choice value="16:9"/>
+      </choices>
+      <default>'free'</default>
+      <summary>Last crop aspect ratio</summary>
+    </key>
+    <key name="editor-crop-portrait" type="b">
+      <default>false</default>
+      <summary>Whether portrait crop orientation was last selected</summary>
+    </key>
+    <key name="share-background" type="s">
+      <choices>
+        <choice value="aurora"/>
+        <choice value="sky"/>
+        <choice value="sunset"/>
+        <choice value="midnight"/>
+        <choice value="mint-bloom"/>
+        <choice value="violet-bloom"/>
+        <choice value="sunbeam"/>
+        <choice value="deep-teal"/>
+        <choice value="brass-tide"/>
+        <choice value="eclipse-gold"/>
+        <choice value="paper"/>
+        <choice value="graphite"/>
+      </choices>
+      <default>'aurora'</default>
+      <summary>Last share-image background</summary>
+    </key>
+    <key name="share-ratio" type="s">
+      <choices>
+        <choice value="landscape"/>
+        <choice value="wide"/>
+        <choice value="square"/>
+      </choices>
+      <default>'landscape'</default>
+      <summary>Last share-image canvas ratio</summary>
+    </key>
+    <key name="share-padding" type="d">
+      <range min="0.035" max="0.22"/>
+      <default>0.085</default>
+      <summary>Last share-image padding</summary>
+    </key>
+    <key name="share-corner-radius" type="d">
+      <range min="0" max="96"/>
+      <default>42</default>
+      <summary>Last share-image corner radius</summary>
+    </key>
+    <key name="share-shadow" type="b">
+      <default>true</default>
+      <summary>Whether the share-image shadow was last enabled</summary>
+    </key>
+    <key name="share-shadow-strength" type="d">
+      <range min="0" max="1"/>
+      <default>1</default>
+      <summary>Last share-image shadow strength</summary>
+    </key>
+  </schema>
+</schemalist>

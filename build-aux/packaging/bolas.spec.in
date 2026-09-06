@@ -1,0 +1,52 @@
+Name: bolas
+Version: @VERSION@
+Release: 1
+Summary: Native GNOME screenshot and video editor
+# No project license has been declared yet; do not inherit Cusco's license.
+License: LicenseRef-Proprietary
+URL: https://github.com/stonega/bolas
+Source0: bolas-%{version}.tar.xz
+BuildArch: noarch
+
+# GJS imports and subprocesses are not detected by RPM dependency generation.
+Requires: gjs >= 1.80
+Requires: gtk4 >= 4.14
+Requires: libadwaita >= 1.6
+Requires: gdk-pixbuf2
+Requires: graphene
+Requires: pango
+Requires: glib2
+Requires: gstreamer1-plugins-base
+Requires: gstreamer1-plugins-good
+Requires: /usr/bin/ffmpeg
+Requires: shared-mime-info
+Requires: hicolor-icon-theme
+Recommends: desktop-file-utils
+Recommends: xdg-desktop-portal
+Recommends: xdg-desktop-portal-gnome
+
+%description
+Bolas captures and annotates screenshots, composes share images, and edits
+screen recordings with trim, zoom, captions, blur masks, and WebM export.
+
+%prep
+%setup -q -c -T
+tar -xJf "%{SOURCE0}"
+
+%build
+# Architecture-independent GJS modules were built and tested by Meson.
+
+%install
+mkdir -p "%{buildroot}"
+cp -a usr "%{buildroot}/"
+
+# Fedora file triggers refresh schemas, MIME, desktop, and icon caches.
+%files
+%defattr(-,root,root,-)
+%{_bindir}/bolas
+%{_datadir}/bolas/
+%{_datadir}/applications/io.github.stonega.Bolas.desktop
+%{_datadir}/dbus-1/services/io.github.stonega.Bolas.service
+%{_datadir}/glib-2.0/schemas/io.github.stonega.Bolas.gschema.xml
+%{_datadir}/mime/packages/io.github.stonega.Bolas-workspace.xml
+%{_datadir}/icons/hicolor/scalable/apps/io.github.stonega.Bolas.svg

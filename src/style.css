@@ -1,0 +1,266 @@
+.welcome-view {
+  padding: 12px;
+}
+
+.image-frame {
+  background-color: alpha(@window_fg_color, 0.035);
+  border: 1px solid alpha(@window_fg_color, 0.12);
+  border-radius: 24px;
+}
+
+.image-glyph {
+  color: alpha(@window_fg_color, 0.4);
+}
+
+.frame-corner {
+  border-color: @accent_bg_color;
+  border-style: solid;
+  border-width: 0;
+  margin: 17px;
+}
+
+.frame-corner.top-left {
+  border-left-width: 4px;
+  border-radius: 10px 0 0;
+  border-top-width: 4px;
+}
+
+.frame-corner.top-right {
+  border-radius: 0 10px 0 0;
+  border-right-width: 4px;
+  border-top-width: 4px;
+}
+
+.frame-corner.bottom-left {
+  border-bottom-width: 4px;
+  border-left-width: 4px;
+  border-radius: 0 0 0 10px;
+}
+
+.frame-corner.bottom-right {
+  border-bottom-width: 4px;
+  border-radius: 0 0 10px;
+  border-right-width: 4px;
+}
+
+.welcome-copy {
+  font-size: 1.08em;
+}
+
+.recent-workspace-grid {
+  background-color: transparent;
+}
+
+.recent-workspace-grid > child {
+  background-color: transparent;
+  border-radius: 18px;
+  margin: 2px;
+}
+
+.recent-workspace-card {
+  background-color: alpha(@window_fg_color, 0.035);
+  border: 1px solid alpha(@window_fg_color, 0.11);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.recent-workspace-preview {
+  background-color: alpha(@window_fg_color, 0.04);
+  border: 1px solid alpha(@window_fg_color, 0.08);
+  border-radius: 11px;
+  color: alpha(@window_fg_color, 0.4);
+  min-height: 140px;
+}
+
+.recent-workspace-grid > child:hover .recent-workspace-card {
+  background-color: alpha(@window_fg_color, 0.065);
+  border-color: alpha(@window_fg_color, 0.16);
+}
+
+.video-editor-stage {
+  background-color: #0e0e10;
+  padding: 18px;
+}
+
+.video-editor-sidebar {
+  background-color: @window_bg_color;
+  border-left: 1px solid alpha(@window_fg_color, 0.14);
+}
+
+.video-share-workspace {
+  background-color: #111216;
+}
+
+.video-share-preview-frame {
+  background-color: transparent;
+  border: none;
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.video-share-preview-frame.video-radius-flat {
+  border-radius: 0;
+}
+
+.video-share-preview-frame.video-radius-small {
+  border-radius: 8px;
+}
+
+.video-share-preview-frame.video-radius-medium {
+  border-radius: 16px;
+}
+
+.video-share-preview-frame.video-radius-large {
+  border-radius: 24px;
+}
+
+.video-caption-preview {
+  background-color: alpha(#000000, 0.62);
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 1.12em;
+  font-weight: 600;
+  padding: 8px 13px;
+}
+
+.video-timeline-panel {
+  background-color: #0c0e11;
+  border-top: 1px solid #2a2e34;
+  min-height: 308px;
+}
+
+.video-timeline-toolbar {
+  color: #d8dce2;
+}
+
+.video-timeline-toolbar button,
+.video-timeline-toolbar dropdown {
+  min-height: 30px;
+}
+
+.screenshot-folder-panel {
+  background-color: @window_bg_color;
+  border-left: 1px solid alpha(@window_fg_color, 0.12);
+}
+
+.screenshot-folder-grid {
+  padding: 10px;
+}
+
+.screenshot-folder-cell {
+  border-radius: 12px;
+  padding: 6px;
+}
+
+.screenshot-folder-thumbnail {
+  background-color: #151518;
+  border: 1px solid alpha(@window_fg_color, 0.12);
+  border-radius: 9px;
+}
+
+.share-preview-stage {
+  background-color: #111216;
+}
+
+.share-sidebar-slot {
+  background-color: #111216;
+}
+
+.share-sidebar {
+  background-color: @window_bg_color;
+  border-left: 1px solid alpha(@window_fg_color, 0.12);
+}
+
+.share-preset-button {
+  border-radius: 9px;
+  min-height: 68px;
+  padding: 0;
+}
+
+.share-preset-button:checked {
+  box-shadow: none;
+}
+
+.share-preset-selection-frame {
+  border: 2px solid transparent;
+  border-radius: 9px;
+}
+
+.share-preset-button:checked .share-preset-selection-frame {
+  border-color: @accent_bg_color;
+}
+
+.accent {
+  color: @accent_color;
+}
+
+.error {
+  color: @error_color;
+}
+
+.bolas-image-editor-surface,
+.bolas-image-editor-canvas {
+  background-color: #0e0e10;
+}
+
+.bolas-image-tool-grid button,
+.bolas-image-color-swatch-button {
+  border-radius: 8px;
+  min-height: 34px;
+  min-width: 34px;
+  padding: 4px;
+}
+
+.bolas-image-color-swatch-button:checked {
+  background-color: alpha(@window_fg_color, 0.12);
+  box-shadow: inset 0 0 0 2px @accent_bg_color;
+}
+
+.bolas-image-inline-text-entry {
+  background-color: transparent;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  caret-color: currentColor;
+  min-height: 0;
+  min-width: 0;
+  outline-width: 0;
+  padding: 0;
+}
+
+.bolas-image-inline-text-entry selection {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+}
+
+.bolas-image-editor-sidebar {
+  background-color: @window_bg_color;
+  border-left: 1px solid alpha(@window_fg_color, 0.14);
+}
+
+.bolas-image-viewer-header,
+.workspace-transparent-header {
+  background-color: transparent;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+}
+
+.workspace-transparent-header button.flat {
+  background-color: alpha(#000000, 0.3);
+  color: #ffffff;
+}
+
+.workspace-transparent-header .workspace-back-button {
+  background-color: alpha(#000000, 0.4);
+  color: #ffffff;
+}
+
+.workspace-transparent-header button.flat:hover {
+  background-color: alpha(#000000, 0.44);
+}
+
+.bolas-high-contrast .bolas-image-editor-sidebar {
+  border-color: @window_fg_color;
+}

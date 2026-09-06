@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Bolas
+Comment=View screenshots and recordings, and edit portable media workspaces
+Exec=bolas %U
+Icon=@APP_ID@
+Terminal=false
+Type=Application
+Categories=GNOME;GTK;Graphics;
+Keywords=screenshot;recording;video;image;viewer;editor;share;
+MimeType=application/vnd.io.github.stonega.bolas.workspace;image/png;image/jpeg;image/webp;image/gif;image/tiff;image/bmp;video/3gpp;video/mp4;video/mpeg;video/ogg;video/quicktime;video/webm;video/x-m4v;video/x-matroska;video/x-ms-asf;video/x-ms-wmv;video/x-msvideo;
+DBusActivatable=true
+StartupNotify=true

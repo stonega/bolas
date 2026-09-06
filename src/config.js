@@ -1,0 +1,12 @@
+export const APP_ID = 'io.github.stonega.Bolas';
+export const APP_NAME = 'Bolas';
+export const APP_VERSION = '0.1.0';
+export const WORKSPACE_EXTENSION = '.bolas';
+export const WORKSPACE_MIME_TYPE = 'application/vnd.io.github.stonega.bolas.workspace';
+export const DEFAULT_WINDOW_WIDTH = 1120;
+export const DEFAULT_WINDOW_HEIGHT = 760;
+export const MEDIA_FOLDER_SIDEBAR_MIN_WIDTH = 600;
+export const MEDIA_FOLDER_SIDEBAR_MAX_WIDTH = 760;
+export const MEDIA_FOLDER_SIDEBAR_WIDTH_FRACTION = 0.68;
+export const MEDIA_FOLDER_THUMBNAIL_ASPECT_RATIO = 16 / 9;
+export const PROJECT_URL = 'https://github.com/stonega/bolas';

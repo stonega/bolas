@@ -1,0 +1,242 @@
+import Gio from 'gi://Gio?version=2.0';
+import GLib from 'gi://GLib?version=2.0';
+import Gst from 'gi://Gst?version=1.0';
+import GstPbutils from 'gi://GstPbutils?version=1.0';
+import System from 'system';
+
+import {
+  buildVideoExportArguments,
+  buildVideoFilterGraph,
+  exportEditedVideo,
+  isVideoExportCancellation,
+} from '../src/services/video-export.js';
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+Gst.init(null);
+const root = GLib.build_filenamev([
+  GLib.get_tmp_dir(),
+  `bolas-video-export-${GLib.uuid_string_random()}`,
+]);
+const sourcePath = GLib.build_filenamev([root, 'source.webm']);
+const outputPath = GLib.build_filenamev([root, 'trimmed.webm']);
+const audioOutputPath = GLib.build_filenamev([root, 'with-audio.webm']);
+const composedOutputPath = GLib.build_filenamev([root, 'composed.webm']);
+const silentSourcePath = GLib.build_filenamev([root, 'silent-source.webm']);
+const silentOutputPath = GLib.build_filenamev([root, 'silent-output.webm']);
+const cancelledOutputPath = GLib.build_filenamev([root, 'cancelled.webm']);
+let exitCode = 0;
+
+try {
+  GLib.mkdir_with_parents(root, 0o700);
+  const generator = Gio.Subprocess.new(
+    [
+      'ffmpeg',
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-nostdin',
+      '-f',
+      'lavfi',
+      '-i',
+      'testsrc2=size=160x90:rate=15',
+      '-f',
+      'lavfi',
+      '-i',
+      'sine=frequency=440:sample_rate=48000',
+      '-t',
+      '1.2',
+      '-c:v',
+      'libvpx-vp9',
+      '-deadline',
+      'realtime',
+      '-cpu-used',
+      '8',
+      '-c:a',
+      'libopus',
+      '-f',
+      'webm',
+      '-n',
+      sourcePath,
+    ],
+    Gio.SubprocessFlags.NONE,
+  );
+  assert(generator.wait_check(null), 'could not create the source video fixture');
+
+  const edit = { muted: true, trimEndUs: 900_000, trimStartUs: 300_000 };
+  const args = buildVideoExportArguments(sourcePath, `${outputPath}.tmp`, edit, 1_200_000);
+  assert(args.includes('-an'), 'muted export must remove the audio stream');
+  assert(args.includes('libvpx-vp9'), 'video export must use the VP9 encoder');
+
+  await exportEditedVideo({
+    durationUs: 1_200_000,
+    edit,
+    sourcePath,
+    targetPath: outputPath,
+  });
+  assert(GLib.file_test(outputPath, GLib.FileTest.EXISTS), 'edited WebM was not created');
+
+  const discoverer = GstPbutils.Discoverer.new(5 * Gst.SECOND);
+  const info = discoverer.discover_uri(Gio.File.new_for_path(outputPath).get_uri());
+  const duration = Number(info.get_duration());
+  assert(duration >= 500_000_000 && duration <= 750_000_000, 'trimmed duration is incorrect');
+  assert(info.get_video_streams().length === 1, 'edited output must contain one video stream');
+  assert(info.get_audio_streams().length === 0, 'muted output must not contain audio');
+
+  await exportEditedVideo({
+    durationUs: 1_200_000,
+    edit: { muted: false, trimEndUs: 600_000, trimStartUs: 0 },
+    sourcePath,
+    targetPath: audioOutputPath,
+  });
+  const audioInfo = discoverer.discover_uri(Gio.File.new_for_path(audioOutputPath).get_uri());
+  assert(audioInfo.get_audio_streams().length === 1, 'unmuted output must retain audio');
+
+  const silentGenerator = Gio.Subprocess.new(
+    [
+      'ffmpeg',
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-nostdin',
+      '-i',
+      sourcePath,
+      '-an',
+      '-c:v',
+      'copy',
+      '-n',
+      silentSourcePath,
+    ],
+    Gio.SubprocessFlags.NONE,
+  );
+  assert(silentGenerator.wait_check(null), 'could not create the silent video fixture');
+  await exportEditedVideo({
+    durationUs: 1_200_000,
+    edit: { muted: false },
+    sourcePath: silentSourcePath,
+    targetPath: silentOutputPath,
+  });
+  const silentInfo = discoverer.discover_uri(Gio.File.new_for_path(silentOutputPath).get_uri());
+  assert(silentInfo.get_audio_streams().length === 0, 'silent video export added an audio stream');
+
+  const composedEdit = {
+    audioVolume: 0.8,
+    captions: [{ endUs: 600_000, startUs: 0, text: 'Focus here' }],
+    masks: [
+      {
+        blur: 8,
+        endUs: 700_000,
+        height: 0.2,
+        startUs: 100_000,
+        width: 0.2,
+        x: 0.4,
+        y: 0.4,
+      },
+    ],
+    shareEnabled: true,
+    speed: 1.5,
+    trimEndUs: 900_000,
+    zoomSegments: [
+      {
+        endUs: 600_000,
+        focusX: 0.3,
+        focusY: 0.6,
+        mode: 'manual',
+        scale: 1.3,
+        startUs: 0,
+      },
+    ],
+  };
+  const graph = buildVideoFilterGraph(composedEdit, 1_200_000, {
+    sourceHeight: 90,
+    sourceWidth: 160,
+  }).filterComplex;
+  assert(graph.includes('zoompan='), 'zoom segments must be present in the filter graph');
+  assert(graph.includes('cos(PI*'), 'zoom segments must use smooth focus transitions');
+  assert(graph.includes('clip(iw*'), 'manual focus must clamp the measured horizontal point');
+  assert(graph.includes('drawtext='), 'captions must be present in the filter graph');
+  assert(graph.includes('boxblur='), 'blur masks must be present in the filter graph');
+  assert(graph.includes('alphamerge'), 'share videos must use the rounded-corner mask');
+  assert(
+    graph.indexOf('boxblur=') < graph.indexOf('zoompan=') &&
+      graph.indexOf('zoompan=') < graph.indexOf('alphamerge'),
+    'blur and zoom must affect the imported video before share-canvas composition',
+  );
+  assert(
+    graph.indexOf('alphamerge') < graph.indexOf('drawtext='),
+    'captions must remain on the composed canvas outside recording-only effects',
+  );
+  assert(
+    graph.includes('crop=32:18:64:36'),
+    'mask coordinates must be measured against the imported video',
+  );
+  assert(
+    graph.includes('s=160x90:fps=30'),
+    'zoom must transform only the imported video dimensions',
+  );
+
+  await exportEditedVideo({
+    durationUs: 1_200_000,
+    edit: composedEdit,
+    sourceHeight: 90,
+    sourcePath,
+    sourceWidth: 160,
+    targetPath: composedOutputPath,
+  });
+  const composedInfo = discoverer.discover_uri(Gio.File.new_for_path(composedOutputPath).get_uri());
+  const composedVideo = composedInfo.get_video_streams()[0];
+  assert(composedVideo.get_width() === 1600, 'share video width must follow the canvas ratio');
+  assert(composedVideo.get_height() === 1200, 'share video height must follow the canvas ratio');
+  assert(composedInfo.get_audio_streams().length === 1, 'share video must retain edited audio');
+  const composedDuration = Number(composedInfo.get_duration());
+  assert(
+    composedDuration >= 500_000_000 && composedDuration <= 750_000_000,
+    'share video speed did not retime the output',
+  );
+
+  const cancellable = new Gio.Cancellable();
+  GLib.timeout_add(GLib.PRIORITY_DEFAULT, 10, () => {
+    cancellable.cancel();
+    return GLib.SOURCE_REMOVE;
+  });
+  let cancelled = false;
+  try {
+    await exportEditedVideo({
+      cancellable,
+      durationUs: 1_200_000,
+      edit: {},
+      sourcePath,
+      targetPath: cancelledOutputPath,
+    });
+  } catch (error) {
+    cancelled = isVideoExportCancellation(error);
+  }
+  assert(cancelled, 'a cancelled export must report cancellation');
+  assert(
+    !GLib.file_test(cancelledOutputPath, GLib.FileTest.EXISTS),
+    'a cancelled export must not leave an output file',
+  );
+
+  print('video export is valid');
+} catch (error) {
+  printerr(String(error));
+  printerr(error.stack ?? error.message);
+  exitCode = 1;
+} finally {
+  for (const path of [
+    audioOutputPath,
+    cancelledOutputPath,
+    composedOutputPath,
+    outputPath,
+    silentOutputPath,
+    silentSourcePath,
+    sourcePath,
+  ]) {
+    if (GLib.file_test(path, GLib.FileTest.EXISTS)) GLib.unlink(path);
+  }
+  if (GLib.file_test(root, GLib.FileTest.IS_DIR)) GLib.rmdir(root);
+}
+
+System.exit(exitCode);

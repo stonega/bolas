@@ -1,0 +1,4 @@
+#!/usr/bin/env -S gjs -m
+
+await import('@MAIN_MODULE_URI@');
+

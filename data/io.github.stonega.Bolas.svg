@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="canvas" x1="20" y1="18" x2="108" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#62a0ea"/>
+      <stop offset="0.48" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#e84baf"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="38" y1="34" x2="91" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#383842"/>
+      <stop offset="1" stop-color="#19191e"/>
+    </linearGradient>
+    <radialGradient id="orb" cx="0" cy="0" r="1" gradientTransform="translate(58 58) rotate(48) scale(24)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f6f5f4"/>
+      <stop offset="0.25" stop-color="#99c1f1"/>
+      <stop offset="0.62" stop-color="#813d9c"/>
+      <stop offset="1" stop-color="#c061cb"/>
+    </radialGradient>
+    <filter id="card-shadow" x="-0.25" y="-0.25" width="1.5" height="1.65" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dy="5"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="screen-shadow" x="-0.18" y="-0.2" width="1.36" height="1.48" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.5"/>
+      <feOffset dy="3"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.32"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- The colorful canvas is the background added by the share composer. -->
+  <g transform="rotate(-4 64 64)" filter="url(#card-shadow)">
+    <rect x="14" y="16" width="100" height="96" rx="25" fill="url(#canvas)"/>
+    <rect x="16" y="18" width="96" height="92" rx="23" fill="none" stroke="#fff" stroke-opacity="0.3" stroke-width="2"/>
+    <path d="M28 22h52c13 0 24 5 30 15" fill="none" stroke="#fff" stroke-linecap="round" stroke-opacity="0.18" stroke-width="4"/>
+  </g>
+
+  <!-- A light physical frame gives the icon the dimensional GNOME app style. -->
+  <g filter="url(#screen-shadow)">
+    <rect x="20" y="27" width="88" height="76" rx="17" fill="#f6f5f4"/>
+    <rect x="22" y="29" width="84" height="72" rx="15" fill="none" stroke="#fff" stroke-width="2"/>
+    <rect x="27" y="34" width="74" height="55" rx="10" fill="url(#screen)"/>
+    <path d="M27 45h74" stroke="#5e5c64" stroke-opacity="0.55" stroke-width="2"/>
+    <circle cx="35" cy="40" r="2.5" fill="#ed333b"/>
+    <circle cx="43" cy="40" r="2.5" fill="#f6d32d"/>
+    <circle cx="51" cy="40" r="2.5" fill="#57e389"/>
+
+    <!-- The original Bolas focus orb remains the recognizable center. -->
+    <circle cx="64" cy="67" r="13" fill="url(#orb)"/>
+    <circle cx="59" cy="62" r="4" fill="#fff" fill-opacity="0.78"/>
+    <circle cx="70" cy="72" r="3" fill="#62a0ea"/>
+    <path d="M50 59v-5a4 4 0 0 1 4-4h5M69 50h5a4 4 0 0 1 4 4v5M78 70v5a4 4 0 0 1-4 4h-5M59 79h-5a4 4 0 0 1-4-4v-5" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="3.5"/>
+
+    <!-- A compact editor strip reads clearly without becoming visual noise. -->
+    <rect x="41" y="94" width="18" height="3" rx="1.5" fill="#9a9996"/>
+    <rect x="62" y="94" width="25" height="3" rx="1.5" fill="#3584e4"/>
+  </g>
+</svg>

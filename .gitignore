@@ -1,0 +1,21 @@
+# Native build output
+/build/
+/builddir/
+/stage/
+/dist/
+
+# Flatpak Builder output
+/.flatpak-build/
+/.flatpak-builder/
+/repo/
+/*.flatpak
+
+# JavaScript development tooling
+/node_modules/
+/.cache/
+
+# Editor and operating-system files
+/.idea/
+/.vscode/
+*~
+.DS_Store
