@@ -71,4 +71,15 @@ PY
 
 glib-compile-schemas --strict --dry-run "$work_dir/deb/usr/share/glib-2.0/schemas"
 desktop-file-validate "$work_dir/deb/usr/share/applications/io.github.stonega.Bolas.desktop"
+mkdir -p "$work_dir/user-data" "$work_dir/user-config"
+for format in deb rpm; do
+  package_root="$work_dir/$format"
+  BOLAS_PACKAGE_ROOT="$package_root" \
+    XDG_DATA_HOME="$work_dir/user-data" \
+    XDG_CONFIG_HOME="$work_dir/user-config" \
+    XDG_DATA_DIRS="$package_root/usr/share:/usr/share" \
+    XDG_CURRENT_DESKTOP=GNOME \
+    PATH="$package_root/usr/bin:$PATH" \
+    gjs -m "$repo_root/tests/check-installed-desktop.js"
+done
 printf 'Package metadata, payloads, launcher, and desktop integration passed.\n'

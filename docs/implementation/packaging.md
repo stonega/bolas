@@ -31,8 +31,8 @@ bash scripts/package.sh
 bash tests/test-packages.sh
 ```
 
-Outputs for version 0.1.0 are `dist/bolas_0.1.0_all.deb`,
-`dist/bolas-0.1.0-1.noarch.rpm`, and `dist/SHA256SUMS`. Each build uses a fresh
+Outputs for version 0.1.1 are `dist/bolas_0.1.1_all.deb`,
+`dist/bolas-0.1.1-1.noarch.rpm`, and `dist/SHA256SUMS`. Each build uses a fresh
 temporary directory and cleans it on exit; it does not reuse `build/` or
 include repository files outside Meson's installation list.
 
@@ -41,7 +41,7 @@ Versions come from Meson's project metadata and must use numeric
 `src/config.js`. On tag builds, the tag must equal `v` plus that version:
 
 ```sh
-bash scripts/package.sh v0.1.0
+bash scripts/package.sh v0.1.1
 ```
 
 Branch, pull-request, and manual builds use the project version unchanged.
@@ -64,7 +64,18 @@ triggers perform those updates. Generated system caches are never packaged.
 The package verification test extracts into temporary directories without
 installing anything or opening a desktop session. It checks checksums,
 identity, architecture, installed size, matching contents, required resources, launcher paths,
-RPM ownership, executable Debian hooks, and desktop/schema validation.
+RPM ownership, executable Debian hooks, and desktop/schema validation. For each
+extracted package, an isolated GIO process also resolves the desktop entry by
+application ID and checks that it is visible in GNOME, uses the installed
+launcher, and names the bundled icon. The process uses temporary XDG user-data
+and configuration directories, so user launcher overrides cannot mask a
+packaging failure or make the check depend on a live desktop session.
+
+User desktop entries take precedence over system packages. An obsolete
+development entry with the same application ID can hide a correct installation;
+package upgrades do not change that user file. See the
+[missing launcher recovery steps](../user/getting-started.md#bolas-is-missing-from-the-application-grid)
+and [incident report](../../postmortem/2026-09-06-development-launcher-hides-installed-app.md).
 
 No project license has been declared in Bolas yet. RPM currently records
 `LicenseRef-Proprietary` rather than adopting the license of the Cusco example.

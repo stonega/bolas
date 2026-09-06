@@ -19,6 +19,29 @@ These commands install the required GNOME libraries and media tools. Start
 backend is needed for screenshot capture. Additional video formats may require
 your distribution's optional GStreamer codecs.
 
+## Bolas is missing from the application grid
+
+An old development launcher can override the installed package's desktop entry.
+This affects profiles used with an earlier development setup: its user-local
+`io.github.stonega.Bolas.desktop` entry contains `OnlyShowIn=X-BolasDevelopment;`,
+which hides the application from GNOME even though the RPM or DEB is installed.
+Upgrading the package does not replace user-local desktop entries.
+
+To back up that obsolete entry, run the following without `sudo`. It only moves
+an entry marked as a Bolas development launcher and preserves an existing backup:
+
+```sh
+desktop_entry="${XDG_DATA_HOME:-$HOME/.local/share}/applications/io.github.stonega.Bolas.desktop"
+if [ -f "$desktop_entry" ] && grep -Fxq 'X-Bolas-Development=true' "$desktop_entry"; then
+  mv --no-clobber -- "$desktop_entry" "$desktop_entry.bolas-development-backup"
+fi
+```
+
+Reopen the application grid. GNOME can then use the visible launcher installed
+at `/usr/share/applications/io.github.stonega.Bolas.desktop`. If the backup
+already existed, the command leaves both files unchanged; preserve or rename
+that backup before retrying.
+
 ## Open and capture
 
 Open Bolas and choose **Take Screenshot** (or press Ctrl+Shift+S) to use the
