@@ -1,6 +1,7 @@
 {
   "name": "bolas",
   "version": "0.1.2",
+  "license": "GPL-3.0-or-later",
   "private": true,
   "type": "module",
   "scripts": {

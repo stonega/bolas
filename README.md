@@ -50,6 +50,14 @@ and `.bolas` projects can be opened from Files and other GNOME applications.
 
 ## Debian and RPM packages
 
+Install from [Fedora COPR](https://copr.fedorainfracloud.org/coprs/stonegate/bolas/)
+on Fedora 43 or newer (x86_64 and aarch64):
+
+```sh
+sudo dnf copr enable stonegate/bolas
+sudo dnf install bolas
+```
+
 The **Build packages** GitHub Actions workflow builds `.deb` (`all`) and Fedora
 `.rpm` (`noarch`) packages on pushes to `main`, pull requests targeting `main`,
 `v*` tags, and manual runs. Download **bolas-packages** from the workflow run's
@@ -71,6 +79,16 @@ flatpak-builder --user --install --force-clean \
 
 The application ID is `io.github.stonega.Bolas`. Keep it stable after public
 distribution so desktop identity and settings remain continuous.
+
+## License
+
+Bolas is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version (`GPL-3.0-or-later`).
+
+Bolas is distributed without any warranty. See [LICENSE](LICENSE) for the
+complete terms.
 
 ## Repository map
 

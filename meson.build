@@ -1,6 +1,8 @@
 project(
   'bolas',
   version: '0.1.2',
+  license: 'GPL-3.0-or-later',
+  license_files: 'LICENSE',
   meson_version: '>= 1.2.0',
 )
 
@@ -11,6 +13,11 @@ gnome = import('gnome')
 subdir('data')
 subdir('src')
 subdir('tests')
+
+install_data(
+  'LICENSE',
+  install_dir: get_option('datadir') / 'licenses' / 'bolas',
+)
 
 gnome.post_install(
   glib_compile_schemas: true,

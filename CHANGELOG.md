@@ -2,6 +2,7 @@
 
 ## [0.1.2] - 2026-09-07
 
+- License Bolas under GPL-3.0-or-later and add Fedora COPR source packaging.
 - Add a shared image and video export dialog with format selection, progress,
   cancellation, and retry after errors.
 - Support JPEG image export and H.264/AAC MP4 video export alongside PNG and WebM.

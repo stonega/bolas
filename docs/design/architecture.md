@@ -22,6 +22,8 @@ depend on a browser runtime, GNOME Shell private APIs, or an external AI client.
 - **Flatpak** provides a sandboxed distribution and permission boundary.
 - **DEB and RPM packages** distribute the same Meson installation for native
   Debian and Fedora systems, using distribution-provided GNOME and media libraries.
+- **Fedora COPR** builds release sources for x86_64 and aarch64. Bolas is
+  GPL-3.0-or-later licensed; every native installation includes its license text.
 - **Biome** formats and statically checks repository JavaScript only.
 
 The UI uses system typography and libadwaita colors. A restrained four-corner

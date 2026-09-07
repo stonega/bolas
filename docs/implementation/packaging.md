@@ -89,8 +89,30 @@ package upgrades do not change that user file. See the
 [missing launcher recovery steps](../user/getting-started.md#bolas-is-missing-from-the-application-grid)
 and [incident report](../../postmortem/2026-09-06-development-launcher-hides-installed-app.md).
 
-No project license has been declared in Bolas yet. RPM currently records
-`LicenseRef-Proprietary` rather than adopting the license of the Cusco example.
-Update that field when the project license is selected.
+Bolas is licensed under `GPL-3.0-or-later`. Meson installs the complete
+`LICENSE` text to `/usr/share/licenses/bolas/LICENSE` in both native packages.
+Both RPM recipes declare the same SPDX license and mark the text with
+`%license`. Package verification checks the license metadata and installed text.
+
+## Fedora COPR
+
+The [stonegate/bolas project](https://copr.fedorainfracloud.org/coprs/stonegate/bolas/)
+is configured for Fedora 43, 44, 45, and Rawhide on x86_64 and aarch64.
+
+`build-aux/packaging/bolas-copr.spec` builds from a GitHub release tag through
+Meson's Fedora RPM macros, runs the deterministic test suite, and validates
+desktop metadata and schemas. Its initial version is 0.1.2. Release sources
+include the GPL license text; COPR rebuilds the application using each target's
+distribution dependencies.
+
+After validating the packages and pushing the matching release tag, submit with:
+
+```sh
+copr-cli build stonegate/bolas build-aux/packaging/bolas-copr.spec
+```
+
+The CLI reads existing credentials from `~/.config/copr` and waits for every
+configured target. Only announce the Fedora package after all targets succeed.
+This manual publishing path does not copy credentials into the repository.
 
 For installation commands, see [Getting started](../user/getting-started.md).

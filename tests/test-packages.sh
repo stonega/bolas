@@ -16,7 +16,10 @@ trap 'rm -rf -- "$work_dir"' EXIT
 [[ "$(dpkg-deb --field "$deb" Architecture)" == all ]]
 [[ "$(dpkg-deb --field "$deb" Installed-Size)" -gt 0 ]]
 [[ "$(rpm -qp --queryformat '%{NAME} %{VERSION} %{ARCH}' "$rpm")" == "bolas $version noarch" ]]
+[[ "$(rpm -qp --queryformat '%{LICENSE}' "$rpm")" == GPL-3.0-or-later ]]
+rpm -qp --licensefiles "$rpm" | grep -Fxq /usr/share/licenses/bolas/LICENSE
 dpkg-deb --extract "$deb" "$work_dir/deb"
+cmp "$repo_root/LICENSE" "$work_dir/deb/usr/share/licenses/bolas/LICENSE"
 dpkg-deb --control "$deb" "$work_dir/control"
 mkdir -p "$work_dir/rpm"
 (cd "$work_dir/rpm" && rpm2cpio "$rpm" | cpio --extract --make-directories --quiet)
@@ -37,6 +40,7 @@ for path in deb_files:
 
 required = [
     'usr/bin/bolas',
+    'usr/share/licenses/bolas/LICENSE',
     'usr/share/bolas/main.js',
     'usr/share/bolas/editor/window.js',
     'usr/share/bolas/video/window.js',

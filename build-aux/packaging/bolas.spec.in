@@ -2,8 +2,7 @@ Name: bolas
 Version: @VERSION@
 Release: 1
 Summary: Native GNOME screenshot and video editor
-# No project license has been declared yet; do not inherit Cusco's license.
-License: LicenseRef-Proprietary
+License: GPL-3.0-or-later
 URL: https://github.com/stonega/bolas
 Source0: bolas-%{version}.tar.xz
 BuildArch: noarch
@@ -43,6 +42,7 @@ cp -a usr "%{buildroot}/"
 # Fedora file triggers refresh schemas, MIME, desktop, and icon caches.
 %files
 %defattr(-,root,root,-)
+%license %{_datadir}/licenses/%{name}/
 %{_bindir}/bolas
 %{_datadir}/bolas/
 %{_datadir}/applications/io.github.stonega.Bolas.desktop

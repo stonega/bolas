@@ -2,6 +2,17 @@
 
 ## Install a native package
 
+On Fedora 43 or newer (x86_64 and aarch64), enable the Bolas COPR repository:
+
+```sh
+sudo dnf copr enable stonegate/bolas
+sudo dnf install bolas
+```
+
+Subsequent releases arrive through normal system updates.
+
+For standalone DEB and RPM downloads:
+
 Download the **bolas-packages** artifact from a successful **Build packages**
 GitHub Actions run and extract it. From that directory, verify the downloads
 with `sha256sum --check SHA256SUMS`, then install the package for your system:
