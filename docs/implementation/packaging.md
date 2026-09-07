@@ -26,9 +26,15 @@ this workflow does not create GitHub releases or submit to COPR.
 On Debian 13, install the build dependencies from the workflow's first step.
 These include Meson >= 1.2, Ninja, GJS, GTK/libadwaita introspection data,
 GLib development tools, GStreamer and GstPbutils introspection data for the
-video-export tests, FFmpeg, desktop metadata tools, Python 3, `rpm`,
+video-export tests, FFmpeg, `librsvg2-common` for GdkPixbuf SVG decoding,
+desktop metadata tools, Python 3, `rpm`,
 `cpio`, and `xz-utils`. `dpkg-deb` is supplied by `dpkg`. Bun is needed for
 JavaScript linting but is not a package runtime dependency.
+
+The minimal CI image installs packages with `--no-install-recommends`, so the
+SVG loader must be listed explicitly. The bundled-icon test decodes the real
+application SVG and fails if the loader is missing; keep that rendering check
+enabled in headless package builds.
 
 ```sh
 bun install --frozen-lockfile
@@ -37,8 +43,8 @@ bash scripts/package.sh
 bash tests/test-packages.sh
 ```
 
-Outputs for version 0.1.1 are `dist/bolas_0.1.1_all.deb`,
-`dist/bolas-0.1.1-1.noarch.rpm`, and `dist/SHA256SUMS`. Each build uses a fresh
+Outputs for version 0.1.2 are `dist/bolas_0.1.2_all.deb`,
+`dist/bolas-0.1.2-1.noarch.rpm`, and `dist/SHA256SUMS`. Each build uses a fresh
 temporary directory and cleans it on exit; it does not reuse `build/` or
 include repository files outside Meson's installation list.
 
@@ -47,7 +53,7 @@ Versions come from Meson's project metadata and must use numeric
 `src/config.js`. On tag builds, the tag must equal `v` plus that version:
 
 ```sh
-bash scripts/package.sh v0.1.1
+bash scripts/package.sh v0.1.2
 ```
 
 Branch, pull-request, and manual builds use the project version unchanged.
