@@ -4,6 +4,7 @@ import Gio from 'gi://Gio?version=2.0';
 import GObject from 'gi://GObject?version=2.0';
 import Gtk from 'gi://Gtk?version=4.0';
 
+import { configureSourceIcons } from './bundledIcons.js';
 import {
   APP_ID,
   APP_NAME,
@@ -80,6 +81,8 @@ export const BolasApplication = GObject.registerClass(
 
     vfunc_startup() {
       super.vfunc_startup();
+      const display = Gdk.Display.get_default();
+      if (display) configureSourceIcons(Gtk.IconTheme.get_for_display(display));
       this._loadStyles();
       this._installActions();
     }
@@ -243,6 +246,7 @@ export const BolasApplication = GObject.registerClass(
         version: APP_VERSION,
         website: PROJECT_URL,
       });
+      about.add_css_class('bolas-about');
       about.present(this._ensureMainWindow());
     }
   },

@@ -55,6 +55,7 @@ install_data(
 install_data(
   files(
     'model/image-file.js',
+    'model/export.js',
     'model/media-file.js',
     'model/screenshot-folder.js',
     'model/workspace.js',
@@ -65,6 +66,9 @@ install_data(
 install_data(
   files(
     'services/image-share.js',
+    'services/export-process.js',
+    'services/image-export.js',
+    'services/image-export-worker.js',
     'services/media-share.js',
     'services/screenshot-capture.js',
     'services/video-auto-focus.js',

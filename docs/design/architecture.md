@@ -15,8 +15,8 @@ depend on a browser runtime, GNOME Shell private APIs, or an external AI client.
   file dialogs, and GNOME visual behavior.
 - **GtkMediaFile and GtkPicture** provide native, codec-aware video playback in
   the composed editor preview.
-- **FFmpeg** provides deterministic, cancellable WebM rendering for video edits.
-- **Cairo and GdkPixbuf** provide deterministic image composition and PNG export.
+- **FFmpeg** provides deterministic, cancellable WebM and MP4 rendering for video edits.
+- **Cairo and GdkPixbuf** provide deterministic image composition and PNG/JPEG export.
 - **Gio and GLib** provide private, atomic `.bolas` workspace persistence and gzip framing.
 - **Meson and Ninja** own configuration, tests, and installation.
 - **Flatpak** provides a sandboxed distribution and permission boundary.
@@ -30,7 +30,12 @@ being created rather than in application chrome.
 
 The application icon uses the same product metaphor: a colorful share canvas
 behind a light screenshot frame, with the original Bolas focus orb preserved as
-the central identity mark.
+the central identity mark. The screenshot uses a GNOME-style header bar with a
+centered title mark and one close button on the right. Its SVG artwork has no
+shadow filters, and the About dialog suppresses the theme's icon shadow for a
+clean, shadow-free presentation.
+Source launches prepend `data/icons` to GTK's icon search paths so About uses the
+current repository artwork even when an older Bolas package is installed.
 
 ## Runtime modules
 
@@ -44,7 +49,7 @@ main.js
         │     │     ├── independently editable image and canvas documents
         │     │     ├── background, layout, annotation, and geometry controls
         │     │     ├── versioned `.bolas` persistence with embedded source and history
-        │     │     └── flattened PNG export and app handoff
+        │     │     └── flattened PNG/JPEG export and PNG app handoff
         │     ├── multitrack share-video workspace
         │     │     ├── video, audio, zoom, speed, text, and mask lanes
         │     │     ├── shared background and canvas controls
@@ -178,7 +183,12 @@ materializes the source into a private, uniquely named cache file for GTK and
 FFmpeg, then removes it when the editor is disposed. Loading dispatches by the
 manifest's explicit `kind`; image version 1 files remain unchanged. Automatic
 focus does not rerun for restored projects. A successful workspace write, not a
-WebM export or application handoff, advances the video editor's saved fingerprint.
+video export or application handoff, advances the video editor's saved fingerprint.
+
+Both editors show workspace-save progress on the existing Save button: it reads
+Saving and remains disabled from preparation through preview generation. The
+button returns to Save when the operation finishes, including failure or
+cancellation. Workspace saves do not add a separate cancel button.
 
 The imported recording is the video editor's visual-effect boundary. Timed zoom
 and regional blur use source-video coordinates and are clipped inside the
@@ -221,9 +231,21 @@ FFmpeg filter graph. It trims the source, applies timed regional blur and zoom t
 the imported recording, scales and rounds that result, and composites it over a
 backdrop painted by the same Cairo share renderer. Captions and speed are applied
 after composition. Export runs without a shell, supports cancellation, writes
-private temporary assets, and atomically moves the completed VP9/Opus WebM
+private temporary assets, and atomically moves the completed VP9/Opus WebM or H.264/AAC MP4
 without replacing the source or an existing destination. Edited videos can be
 handed directly to another application through `Gtk.FileLauncher`.
+
+Both editors use the shared native export dialog in `window.js`. Format selection
+precedes the standard destination chooser; the same modal then shows progress,
+cancellation, errors with retry, and completion. Video percentages come from
+FFmpeg output timestamps divided by the trimmed, speed-adjusted duration. Image
+exports show a pulsing bar with actual preparation, rendering, and encoding
+stages. `services/image-export.js` snapshots the live documents and asynchronously
+saves the oriented source, then a separate GJS worker uses the existing Cairo
+renderer. Large image rendering and encoding do not block GTK. Both services
+publish a completed private file without overwriting an existing destination;
+100% is reported only after publication. Cancellation reaps the worker before
+removing its staging files.
 
 Focus blocks use the same cosine-eased 250 ms scale envelope in the live GTK
 preview and FFmpeg export. Automatic detections retain their source-video point,
@@ -298,7 +320,7 @@ making use of the available window width. Compact vertical insets and a short
 header-to-grid gap keep the projects close to the page controls. Opening an
 external workspace remains supported, but Save imports it into the managed
 library instead of modifying the external file. Export uses the standard save
-dialog for a flattened PNG or WebM. Export and app handoff never clear workspace
+dialog after choosing PNG/JPEG or WebM/MP4 in the export modal. Export and app handoff never clear workspace
 dirty state. None of these actions replaces the source media or an unrelated
 existing destination.
 
@@ -326,7 +348,7 @@ a three-column minimum so every preset remains easy to scan.
 - Transient edited videos are written below the private user cache before app handoff.
 - Cached screencast preview frames use hashed filenames, user-only permissions,
   and a bounded entry count below the private user cache.
-- Edited WebM exports omit source-container metadata and use user-only file permissions.
+- Edited video exports omit source-container metadata and use user-only file permissions.
 - Editor and image-composition preferences contain option values only, never image
   contents or paths.
 - Existing destinations are never overwritten silently.
@@ -343,7 +365,10 @@ a three-column minimum so every preset remains easy to scan.
   existing-destination refusal, and future-version rejection.
 - Video tests cover trim and timeline normalization, timestamp labels, speed and
   audio state, generated zoom/caption/mask/share filter graphs, composed canvas
-  dimensions, muted and unmuted WebM rendering, cancellation, and atomic destinations.
+  dimensions, muted and unmuted WebM rendering, MP4 codecs, progress, cancellation, and atomic destinations.
+- Image-export tests compare the worker's pixels with the editor renderer, verify
+  PNG transparency and white JPEG flattening, and cover progress, cancellation,
+  private permissions, and existing-destination refusal.
 - Automatic-focus tests cover bounded sample rates, localized typing detection,
   whole-frame-motion rejection, generated focus geometry, and preview easing.
 - Screenshot-capture tests cover request paths, responses, private destinations,

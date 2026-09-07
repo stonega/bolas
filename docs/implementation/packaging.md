@@ -1,5 +1,11 @@
 # Native packaging
 
+MP4 export uses the host FFmpeg H.264 encoder: x264 when available, or OpenH264
+on distributions shipping that implementation. AAC is used for MP4 audio.
+WebM retains VP9/Opus. The export dialog reports missing encoder support and
+allows another format to be selected. The image export worker uses the existing
+GJS, Cairo, and GdkPixbuf dependencies and is installed with the service modules.
+
 `.github/workflows/build-packages.yml` follows Cusco's staged-install approach:
 Meson installs to a private directory under `/usr`, then `dpkg-deb` and
 `rpmbuild` package that identical payload. The build runs in Debian 13

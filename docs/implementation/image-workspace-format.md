@@ -120,6 +120,8 @@ keeps its original container bytes and is limited to 128 MiB. On open it is
 checksum-verified, written asynchronously to a private cache file, used by GTK
 playback and FFmpeg, and removed when the workspace closes. Restored workspaces do
 not rerun automatic input-focus analysis over already saved zoom segments.
+Opening a video workspace enters the busy state without a loading toast; controls
+remain disabled during loading, with cancellation and error reporting available.
 
 ## Save and recovery
 
@@ -132,6 +134,14 @@ No destination chooser is shown. Later Save operations require the etag read wit
 the managed workspace, request a backup, and atomically replace the current file.
 An etag mismatch reports an external modification instead of discarding either
 version. Cancellation or write failure leaves the previous project intact.
+
+Both editors track a pending workspace save separately from other busy operations.
+Preparing a video workspace for saving does not show a toast.
+The existing Save button immediately reads Saving and stays disabled through
+source preparation, the workspace write, and preview generation. Completion,
+failure, or cancellation clears that state and restores Save. The video editor
+hides its operation-cancel button while saving; workspace I/O still supports
+cancellation through the existing keyboard and window lifecycle paths.
 
 After a durable workspace write succeeds, Bolas writes a private PNG sidecar named
 `<workspace>.preview.png`. Image projects render the complete saved composition.

@@ -44,6 +44,6 @@ install_data(
 )
 
 install_data(
-  'io.github.stonega.Bolas.svg',
+  'icons/hicolor/scalable/apps/io.github.stonega.Bolas.svg',
   install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps',
 )

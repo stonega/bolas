@@ -27,6 +27,7 @@ const composedOutputPath = GLib.build_filenamev([root, 'composed.webm']);
 const silentSourcePath = GLib.build_filenamev([root, 'silent-source.webm']);
 const silentOutputPath = GLib.build_filenamev([root, 'silent-output.webm']);
 const cancelledOutputPath = GLib.build_filenamev([root, 'cancelled.webm']);
+const mp4OutputPath = GLib.build_filenamev([root, 'export.mp4']);
 let exitCode = 0;
 
 try {
@@ -69,13 +70,38 @@ try {
   const args = buildVideoExportArguments(sourcePath, `${outputPath}.tmp`, edit, 1_200_000);
   assert(args.includes('-an'), 'muted export must remove the audio stream');
   assert(args.includes('libvpx-vp9'), 'video export must use the VP9 encoder');
+  const mp4Args = buildVideoExportArguments(sourcePath, mp4OutputPath, {}, 1_200_000, {
+    format: 'mp4',
+  });
+  assert(
+    mp4Args.includes('libx264') && mp4Args.includes('aac') && mp4Args.includes('+faststart'),
+    'MP4 must use H.264/AAC and support fast start',
+  );
+  const progress = [];
 
   await exportEditedVideo({
     durationUs: 1_200_000,
     edit,
     sourcePath,
     targetPath: outputPath,
+    onProgress: (value) => {
+      progress.push(value.fraction);
+      if (value.fraction === 1)
+        assert(
+          Gio.File.new_for_path(outputPath).query_exists(null),
+          'progress completed before the output existed',
+        );
+    },
   });
+  const fractions = progress.filter((value) => value !== null);
+  assert(
+    fractions.length > 2 && fractions.at(-1) === 1,
+    'video progress must include encoding and completion',
+  );
+  assert(
+    fractions.every((value, index) => index === 0 || value >= fractions[index - 1]),
+    'video progress moved backwards',
+  );
   assert(GLib.file_test(outputPath, GLib.FileTest.EXISTS), 'edited WebM was not created');
 
   const discoverer = GstPbutils.Discoverer.new(5 * Gst.SECOND);
@@ -93,6 +119,45 @@ try {
   });
   const audioInfo = discoverer.discover_uri(Gio.File.new_for_path(audioOutputPath).get_uri());
   assert(audioInfo.get_audio_streams().length === 1, 'unmuted output must retain audio');
+  const mp4 = await exportEditedVideo({
+    durationUs: 1_200_000,
+    edit: { muted: false, speed: 1.5, trimStartUs: 300_000, trimEndUs: 900_000 },
+    format: 'mp4',
+    sourcePath,
+    targetPath: mp4OutputPath,
+  });
+  assert(mp4.mimeType === 'video/mp4', 'MP4 MIME type is incorrect');
+  const probe = Gio.Subprocess.new(
+    ['ffprobe', '-v', 'error', '-show_streams', '-show_format', '-of', 'json', mp4OutputPath],
+    Gio.SubprocessFlags.STDOUT_PIPE,
+  );
+  const [, probeOutput] = probe.communicate_utf8(null, null);
+  const metadata = JSON.parse(probeOutput);
+  assert(
+    metadata.streams.some((stream) => stream.codec_name === 'h264'),
+    'MP4 video codec is incorrect',
+  );
+  assert(
+    metadata.streams.some((stream) => stream.codec_name === 'aac'),
+    'MP4 audio codec is incorrect',
+  );
+  assert(
+    Number(metadata.format.duration) >= 0.35 && Number(metadata.format.duration) <= 0.55,
+    'MP4 trim/speed was lost',
+  );
+  let refused = false;
+  try {
+    await exportEditedVideo({
+      durationUs: 1_200_000,
+      edit: {},
+      format: 'mp4',
+      sourcePath,
+      targetPath: mp4OutputPath,
+    });
+  } catch {
+    refused = true;
+  }
+  assert(refused, 'existing MP4 destination must be refused');
 
   const silentGenerator = Gio.Subprocess.new(
     [
@@ -227,6 +292,7 @@ try {
 } finally {
   for (const path of [
     audioOutputPath,
+    mp4OutputPath,
     cancelledOutputPath,
     composedOutputPath,
     outputPath,

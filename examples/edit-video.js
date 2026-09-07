@@ -13,7 +13,7 @@ function localPath(argument) {
 try {
   if (ARGV.length < 2) {
     throw new Error(
-      'Usage: gjs -m examples/edit-video.js INPUT OUTPUT [START_SECONDS] [END_SECONDS] [--mute] [--share]',
+      'Usage: gjs -m examples/edit-video.js INPUT OUTPUT [START_SECONDS] [END_SECONDS] [--mute] [--share] [--mp4]',
     );
   }
 
@@ -31,6 +31,8 @@ try {
 
   const exported = await exportEditedVideo({
     durationUs,
+    format: ARGV.includes('--mp4') ? 'mp4' : 'webm',
+    onProgress: ({ fraction, message }) => printerr(fraction === null ? message : `${Math.floor(fraction * 100)}% ${message}`),
     edit: {
       muted: ARGV.includes('--mute'),
       shareEnabled: ARGV.includes('--share'),

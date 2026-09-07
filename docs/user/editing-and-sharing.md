@@ -67,9 +67,13 @@ Video projects use the same **Save** and Ctrl+S workflow as image projects. Thei
 portable `.bolas` workspace embeds the source recording plus normalized trim,
 audio, speed, timed zoom, caption, blur-mask, share-canvas, and playhead state.
 Opening the workspace restores those controls without rerunning automatic focus
-analysis. The embedded recording is limited to 128 MiB; WebM Export and Share
+analysis. The embedded recording is limited to 128 MiB; video Export and Share
 remain available for larger sources. Export uses Ctrl+Shift+E and does not clear
 the editable project's unsaved-change state.
+
+In both editors, clicking **Save** changes the button to **Saving** and disables it
+until saving finishes. It then returns to **Save**. No separate Cancel Save button
+appears.
 
 Bolas remembers the annotation tool, color, line and text sizes, fill setting,
 crop ratio, and crop orientation. It also restores the last background, canvas
@@ -86,8 +90,9 @@ both document layers, composition settings, session state, and undo/redo history
 Projects are named automatically, stored in Bolas's private library, and shown
 newest-first under Recents on the home page. Saving also refreshes the card's
 private composition preview. An external workspace is imported into that library
-the first time it is saved. **Export…** lets you choose a durable flattened PNG
-destination, and Share hands a temporary flattened image to another application.
+the first time it is saved. **Export…** opens a modal with **PNG** and **JPEG**
+file types. PNG preserves transparency; JPEG uses a white background for
+transparent areas. Share hands a temporary flattened PNG to another application.
 Export and Share do not clear the workspace's unsaved-change state. No action
 replaces the original image, external workspace, or unrelated output.
 
@@ -96,3 +101,15 @@ selections, transformations, and undo/redo history belong to the current image
 workspace and survive reopening its `.bolas` file. Starting another ordinary
 image creates a separate workspace. Leaving any changed layer still requires
 explicit discard confirmation even after exporting a PNG.
+
+For videos, the export modal offers **WebM** and **MP4**. WebM uses VP9/Opus;
+MP4 uses H.264/AAC and requires a compatible FFmpeg encoder on the system.
+Choose a file type, click **Export**, and choose a new filename and location.
+The filename extension follows the selected type. Existing files are never replaced.
+
+The modal stays open while exporting. Videos show an encoding percentage; images
+show a pulsing progress bar. The current stage appears below the bar in smaller,
+gray text. **Cancel** (or Escape) stops
+the export and cleans up incomplete output. A successful export shows **100%**
+and **Done**. If an export fails, the dialog explains the error and lets you retry
+or choose another format. Ctrl+Shift+E opens this dialog in either editor.

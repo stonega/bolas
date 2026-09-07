@@ -2,6 +2,7 @@ import Gio from 'gi://Gio?version=2.0';
 import GLib from 'gi://GLib?version=2.0';
 
 import { APP_ID } from '../config.js';
+import { exportFormat, videoExportProgress } from '../model/export.js';
 import {
   renderShareVideoBackdrop,
   renderShareVideoMask,
@@ -9,6 +10,7 @@ import {
   shareImageLayout,
 } from '../share/renderer.js';
 import { normalizeVideoEdit, selectedVideoDurationUs } from '../video/edit.js';
+import { checkExportCancellation, runExportProcess } from './export-process.js';
 
 function canonicalPath(path) {
   return GLib.canonicalize_filename(String(path ?? ''), null);
@@ -16,12 +18,6 @@ function canonicalPath(path) {
 
 function secondsArgument(microseconds) {
   return (Number(microseconds) / 1_000_000).toFixed(6);
-}
-
-function cancellationError() {
-  const error = new Error('Video export was cancelled.');
-  error.cancelled = true;
-  return error;
 }
 
 function evenSize(value) {
@@ -214,6 +210,7 @@ export function buildVideoExportArguments(
   durationUs,
   options = {},
 ) {
+  const format = exportFormat('video', options.format);
   const { filterComplex, normalized, outputDurationUs } = buildVideoFilterGraph(
     edit,
     durationUs,
@@ -225,6 +222,9 @@ export function buildVideoExportArguments(
     '-loglevel',
     'error',
     '-nostdin',
+    '-nostats',
+    '-progress',
+    'pipe:1',
     '-ss',
     secondsArgument(normalized.trimStartUs),
     '-i',
@@ -261,74 +261,53 @@ export function buildVideoExportArguments(
       audioFilters.push(`atempo=${normalized.speed.toFixed(3)}`);
     args.push('-af', audioFilters.join(','));
   }
-  args.push(
-    '-sn',
-    '-dn',
-    '-t',
-    secondsArgument(outputDurationUs),
-    '-c:v',
-    'libvpx-vp9',
-    '-deadline',
-    'good',
-    '-cpu-used',
-    '4',
-    '-crf',
-    '32',
-    '-b:v',
-    '0',
-    '-row-mt',
-    '1',
-  );
-  if (!normalized.muted) args.push('-c:a', 'libopus', '-b:a', '128k');
-  args.push('-map_metadata', '-1', '-f', 'webm', '-n', temporaryPath);
+  args.push('-sn', '-dn', '-t', secondsArgument(outputDurationUs));
+  if (format.id === 'mp4') {
+    const encoder = options.h264Encoder ?? 'libx264';
+    if (!['libx264', 'libopenh264'].includes(encoder))
+      throw new Error('Unsupported H.264 encoder.');
+    args.push('-c:v', encoder);
+    if (encoder === 'libx264') args.push('-preset', 'medium', '-crf', '23');
+    else args.push('-b:v', '8M');
+    args.push('-movflags', '+faststart');
+    if (!normalized.muted) args.push('-c:a', 'aac', '-b:a', '128k');
+  } else {
+    args.push(
+      '-c:v',
+      'libvpx-vp9',
+      '-deadline',
+      'good',
+      '-cpu-used',
+      '4',
+      '-crf',
+      '32',
+      '-b:v',
+      '0',
+      '-row-mt',
+      '1',
+    );
+    if (!normalized.muted) args.push('-c:a', 'libopus', '-b:a', '128k');
+  }
+  args.push('-map_metadata', '-1', '-f', format.id, '-n', temporaryPath);
   return args;
 }
 
-function runExporter(args, cancellable) {
-  if (cancellable?.is_cancelled()) return Promise.reject(cancellationError());
-
-  let process;
-  try {
-    process = Gio.Subprocess.new(args, Gio.SubprocessFlags.STDERR_PIPE);
-  } catch (_error) {
-    return Promise.reject(
-      new Error('The FFmpeg video exporter is unavailable. Install FFmpeg and try again.'),
-    );
-  }
-
-  return new Promise((resolve, reject) => {
-    const cancelId =
-      cancellable?.connect(() => {
-        try {
-          process.force_exit();
-        } catch (_error) {
-          // The process may already have exited between cancellation and this callback.
-        }
-      }) ?? 0;
-
-    process.communicate_utf8_async(null, null, (subprocess, result) => {
-      if (cancelId) cancellable.disconnect(cancelId);
-      try {
-        const [, , stderr] = subprocess.communicate_utf8_finish(result);
-        if (cancellable?.is_cancelled()) throw cancellationError();
-        if (!subprocess.get_successful()) {
-          const detail = String(stderr ?? '')
-            .trim()
-            .split('\n')
-            .slice(-4)
-            .join(' ');
-          throw new Error(
-            detail
-              ? `Video export failed: ${detail}`
-              : 'Video export failed. Check that the source video and its codecs are supported.',
-          );
-        }
-        resolve(true);
-      } catch (error) {
-        reject(cancellable?.is_cancelled() ? cancellationError() : error);
-      }
-    });
+async function availableH264Encoder(cancellable) {
+  const encoders = new Set();
+  await runExportProcess(['ffmpeg', '-hide_banner', '-encoders'], {
+    cancellable,
+    unavailableMessage: 'The FFmpeg video exporter is unavailable. Install FFmpeg and try again.',
+    failureMessage: 'Could not check the available video encoders.',
+    onLine: (line) => {
+      const encoder = line.match(/^\s*V\S*\s+(libx264|libopenh264)\s/)?.[1];
+      if (encoder) encoders.add(encoder);
+    },
   });
+  if (encoders.has('libx264')) return 'libx264';
+  if (encoders.has('libopenh264')) return 'libopenh264';
+  throw new Error(
+    'MP4 export needs an FFmpeg H.264 encoder (x264 or OpenH264). Install one or choose WebM.',
+  );
 }
 
 function writeRenderSurface(surface, path) {
@@ -366,6 +345,8 @@ function createShareRenderAssets(directory, stem, edit, sourceWidth, sourceHeigh
 
 export async function exportEditedVideo({
   cancellable = null,
+  format = 'webm',
+  onProgress = null,
   durationUs,
   edit,
   sourceHeight = 0,
@@ -373,6 +354,8 @@ export async function exportEditedVideo({
   sourceWidth = 0,
   targetPath,
 }) {
+  const selectedFormat = exportFormat('video', format);
+  checkExportCancellation(cancellable);
   const inputPath = String(sourcePath ?? '');
   const outputPath = String(targetPath ?? '');
   if (!inputPath || !GLib.path_is_absolute(inputPath))
@@ -390,11 +373,16 @@ export async function exportEditedVideo({
   if (GLib.mkdir_with_parents(directory, 0o700) !== 0)
     throw new Error('Could not create the video export directory.');
   const renderId = `${GLib.path_get_basename(outputPath)}.${GLib.uuid_string_random()}`;
-  const temporaryPath = GLib.build_filenamev([directory, `.${renderId}.tmp.webm`]);
+  const temporaryPath = GLib.build_filenamev([
+    directory,
+    `.${renderId}.tmp.${selectedFormat.extension}`,
+  ]);
   const normalized = normalizeVideoEdit(edit, durationUs);
   let assets = { backdropPath: null, maskPath: null };
 
   try {
+    onProgress?.({ fraction: null, message: 'Preparing video…' });
+    const h264Encoder = format === 'mp4' ? await availableH264Encoder(cancellable) : null;
     if (normalized.shareEnabled)
       assets = createShareRenderAssets(
         directory,
@@ -405,19 +393,37 @@ export async function exportEditedVideo({
       );
     const args = buildVideoExportArguments(inputPath, temporaryPath, normalized, durationUs, {
       ...assets,
+      format,
+      h264Encoder,
       sourceHeight,
       sourceWidth,
     });
-    await runExporter(args, cancellable);
+    let fraction = 0;
+    const outputDurationUs = selectedVideoDurationUs(normalized, durationUs);
+    onProgress?.({ fraction, message: 'Encoding video…' });
+    await runExportProcess(args, {
+      cancellable,
+      unavailableMessage: 'The FFmpeg video exporter is unavailable. Install FFmpeg and try again.',
+      failureMessage: `Video export failed. Check that FFmpeg supports ${selectedFormat.label} encoding.`,
+      onLine: (line) => {
+        const progress = videoExportProgress(line, outputDurationUs);
+        if (progress === null) return;
+        fraction = Math.max(fraction, progress);
+        onProgress?.({ fraction, message: 'Encoding video…' });
+      },
+    });
+    checkExportCancellation(cancellable);
+    onProgress?.({ fraction: 0.99, message: 'Finishing export…' });
     if (GLib.chmod(temporaryPath, 0o600) !== 0)
       throw new Error('Could not secure the exported video.');
     Gio.File.new_for_path(temporaryPath).move(
       Gio.File.new_for_path(outputPath),
       Gio.FileCopyFlags.NONE,
-      null,
+      cancellable,
       null,
     );
-    return { mimeType: 'video/webm', path: outputPath };
+    onProgress?.({ fraction: 1, message: 'Export complete' });
+    return { mimeType: selectedFormat.mimeType, path: outputPath };
   } finally {
     for (const path of [assets.backdropPath, assets.maskPath, temporaryPath]) {
       if (path && GLib.file_test(path, GLib.FileTest.EXISTS)) GLib.unlink(path);

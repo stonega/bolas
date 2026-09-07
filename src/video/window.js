@@ -6,7 +6,6 @@ import GObject from 'gi://GObject?version=2.0';
 import Graphene from 'gi://Graphene?version=1.0';
 import Gsk from 'gi://Gsk?version=4.0';
 import Gtk from 'gi://Gtk?version=4.0';
-
 import { getUserPreferences } from '../preferences.js';
 import { shareMedia } from '../services/media-share.js';
 import { analyzeVideoInputFocus } from '../services/video-auto-focus.js';
@@ -37,6 +36,7 @@ import {
   shareImageLayout,
   sharePreviewCanvasLayout,
 } from '../share/renderer.js';
+import { presentExportDialog } from '../window.js';
 import {
   moveVideoMask,
   normalizeVideoEdit,
@@ -98,11 +98,6 @@ function outputStem(path) {
   const basename = GLib.path_get_basename(String(path ?? 'video'));
   const dot = basename.lastIndexOf('.');
   return dot > 0 ? basename.slice(0, dot) : basename;
-}
-
-function ensureWebmExtension(path) {
-  const value = String(path ?? '').trim();
-  return value.toLowerCase().endsWith('.webm') ? value : `${value}.webm`;
 }
 
 function smallAction(iconName, label, callback) {
@@ -268,6 +263,7 @@ export const VideoEditorView = GObject.registerClass(
       this._workspaceEtag = null;
       this._workspaceSourceMetadata = null;
       this._workspaceCancellable = null;
+      this._workspaceSavePending = false;
       this._materializedVideoPath = null;
       this._pendingWorkspace = null;
       this._preferences = options.preferences ?? getUserPreferences();
@@ -287,6 +283,7 @@ export const VideoEditorView = GObject.registerClass(
       this._autoFocusCancellable = null;
       this._autoFocusStarted = false;
       this._exportCancellable = null;
+      this._exportDialog = null;
       this._mediaSignalIds = [];
       this._selectedEffect = { id: '', kind: '' };
       this._nextEffectId = 1;
@@ -440,7 +437,7 @@ export const VideoEditorView = GObject.registerClass(
       this._exportButton = new Gtk.Button({
         label: 'Export…',
         sensitive: false,
-        tooltip_text: 'Export share video as WebM (Ctrl+Shift+E)',
+        tooltip_text: 'Export video as MP4 or WebM (Ctrl+Shift+E)',
       });
       this._exportButton.connect('clicked', () => this._export());
 
@@ -845,7 +842,7 @@ export const VideoEditorView = GObject.registerClass(
     async _loadWorkspace() {
       const cancellable = new Gio.Cancellable();
       this._workspaceCancellable = cancellable;
-      this._setBusy(true, 'Opening video workspace…', 'Cancel Open');
+      this._setBusy(true, null, 'Cancel Open');
       try {
         const loaded =
           this._workspaceLoad ??
@@ -891,6 +888,7 @@ export const VideoEditorView = GObject.registerClass(
     _installKeyboardShortcuts() {
       const controller = new Gtk.EventControllerKey();
       controller.connect('key-pressed', (_controller, keyval, _keycode, state) => {
+        if (this._exportDialog) return false;
         const control = (state & Gdk.ModifierType.CONTROL_MASK) !== 0;
         const shift = (state & Gdk.ModifierType.SHIFT_MASK) !== 0;
         if (keyval === Gdk.KEY_Escape) {
@@ -1395,6 +1393,7 @@ export const VideoEditorView = GObject.registerClass(
       this._volumeScale.set_sensitive(ready && Boolean(this._media?.has_audio));
       this._speedDropDown.set_sensitive(ready);
       this._autoFocusButton.set_sensitive(ready);
+      this._saveButton.set_label(this._workspaceSavePending ? 'Saving' : 'Save');
       this._saveButton.set_sensitive(ready && this._sourceWidth > 0 && this._sourceHeight > 0);
       this._exportButton.set_sensitive(ready);
       this._shareButton.set_sensitive(ready);
@@ -1403,7 +1402,9 @@ export const VideoEditorView = GObject.registerClass(
           Boolean(this._selectedEffect.id) &&
           ['zoom', 'text', 'mask'].includes(this._selectedEffect.kind),
       );
-      this._cancelOperationButton.set_visible(this._busy);
+      this._cancelOperationButton.set_visible(
+        this._busy && !this._workspaceSavePending && !this._exportDialog,
+      );
       this._cancelOperationButton.set_sensitive(
         Boolean(
           this._exportCancellable || this._autoFocusCancellable || this._workspaceCancellable,
@@ -1613,7 +1614,7 @@ export const VideoEditorView = GObject.registerClass(
       this._busy = Boolean(busy);
       this._cancelOperationButton.set_label(cancelLabel);
       this._syncSensitivity();
-      if (busy) this._toast(label);
+      if (busy && label && !this._exportDialog) this._toast(label);
     }
 
     _exportOptions(targetPath) {
@@ -1640,8 +1641,9 @@ export const VideoEditorView = GObject.registerClass(
 
       const cancellable = new Gio.Cancellable();
       this._workspaceCancellable = cancellable;
+      this._workspaceSavePending = true;
       this._media.pause();
-      this._setBusy(true, 'Preparing video workspace…', 'Cancel Save');
+      this._setBusy(true, null);
       try {
         const source = await loadVideoWorkspaceSource(this._videoPath, { cancellable });
         if (this._disposed || this._workspaceCancellable !== cancellable) return;
@@ -1664,7 +1666,7 @@ export const VideoEditorView = GObject.registerClass(
           },
         });
 
-        this._setBusy(true, 'Saving video workspace…', 'Cancel Save');
+        this._setBusy(true, 'Saving video workspace…');
         const saved = await writeWorkspace(path, workspace, {
           cancellable,
           etag: replaceExisting ? this._workspaceEtag : null,
@@ -1706,6 +1708,7 @@ export const VideoEditorView = GObject.registerClass(
       } catch (error) {
         if (!isCancellation(error)) this._showError('Could Not Save Video Project', error.message);
       } finally {
+        this._workspaceSavePending = false;
         if (this._workspaceCancellable === cancellable) {
           this._workspaceCancellable = null;
           this._setBusy(false);
@@ -1715,39 +1718,31 @@ export const VideoEditorView = GObject.registerClass(
 
     _export() {
       if (this._busy || !this._durationUs) return;
-      const filter = new Gtk.FileFilter();
-      filter.set_name('WebM Videos');
-      filter.add_mime_type('video/webm');
-      filter.add_pattern('*.webm');
-      const filters = new Gio.ListStore({ item_type: Gtk.FileFilter });
-      filters.append(filter);
-      const dialog = new Gtk.FileDialog({
-        initial_name: `${outputStem(
-          this._workspaceSourceMetadata?.displayName ?? this._videoPath,
-        )}-share.webm`,
-        title: 'Export Share Video',
-      });
-      dialog.set_filters(filters);
-      dialog.set_default_filter(filter);
-      dialog.save(this._hostWindow, null, async (_dialog, result) => {
-        try {
-          const selectedPath = dialog.save_finish(result).get_path();
-          if (!selectedPath) throw new Error('Only local save paths are supported.');
-          const path = ensureWebmExtension(selectedPath);
-          if (path !== selectedPath && GLib.file_test(path, GLib.FileTest.EXISTS))
-            throw new Error(`A file named ${GLib.path_get_basename(path)} already exists.`);
-
-          this._media.pause();
-          this._exportCancellable = new Gio.Cancellable();
+      if (this._exportDialog) {
+        this._exportDialog.present();
+        return;
+      }
+      this._media.pause();
+      this._exportDialog = presentExportDialog({
+        parent: this._hostWindow,
+        kind: 'video',
+        stem: `${outputStem(this._workspaceSourceMetadata?.displayName ?? this._videoPath)}-share`,
+        onClosed: () => {
+          this._exportDialog = null;
+        },
+        runExport: async (options) => {
+          this._exportCancellable = options.cancellable;
           this._setBusy(true);
-          await exportEditedVideo(this._exportOptions(path));
-          this._toast(`Exported ${GLib.path_get_basename(path)}`);
-        } catch (error) {
-          if (!isCancellation(error)) this._showError('Could Not Export Video', error.message);
-        } finally {
-          this._exportCancellable = null;
-          this._setBusy(false);
-        }
+          try {
+            return await exportEditedVideo({
+              ...this._exportOptions(options.targetPath),
+              ...options,
+            });
+          } finally {
+            this._exportCancellable = null;
+            if (!this._disposed) this._setBusy(false);
+          }
+        },
       });
     }
 
@@ -1769,6 +1764,8 @@ export const VideoEditorView = GObject.registerClass(
     }
 
     _quiesceForNavigation() {
+      this._exportDialog?.dispose();
+      this._exportDialog = null;
       this._exportCancellable?.cancel();
       this._autoFocusCancellable?.cancel();
       this._workspaceCancellable?.cancel();

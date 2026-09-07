@@ -3,28 +3,7 @@
 Bolas is a native screenshot capture tool, unified image composer, and video
 editor for GNOME, built with GJS, GTK 4, libadwaita, Cairo, and FFmpeg.
 
-Take a screenshot through the secure desktop portal, open an existing image, or
-open a screen recording directly in its editor. Images can be saved, exported,
-shared, annotated, and placed on a polished gradient background. Videos use the
-same share-canvas controls plus a multitrack editor for trim, zoom, speed,
-captions, blur masks, audio volume, and mute before WebM export or application
-handoff.
-Screen recordings are analyzed locally for sustained typing activity so the
-editor can automatically focus and scale active input fields.
-The background, padding, framed recording, shadow, and overlays form one composed
-video frame before timeline visual effects are applied.
-Still images open directly in one non-destructive workspace with a background
-ready for 4:3, 16:9, or square output and adjustable padding, corner radius, and
-shadow. Canvas edits affect the complete composition; selecting the imported
-image directly keeps its crop, rotation, and flip geometry independently
-editable. Draw and annotations remain attached to the complete canvas. Editor
-and composition controls restore each user's most recent choices.
-Editable image and video projects can be saved as portable `.bolas` workspaces.
-Image workspaces embed the normalized source and editable documents; video
-workspaces embed the original recording and normalized timeline, audio, effect,
-share-canvas, and playhead state. PNG and WebM remain the flattened export
-formats. Bolas keeps saved workspaces in its private user-data library and shows
-them newest-first under **Recents** on the home page.
+![Bolas image composer with the Ember background and canvas controls](docs/images/bolas-image-composer.png)
 
 ## Requirements
 

@@ -1,3 +1,7 @@
+.bolas-about .icon-dropshadow {
+  -gtk-icon-shadow: none;
+}
+
 .welcome-view {
   padding: 12px;
 }

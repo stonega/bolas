@@ -11,6 +11,7 @@ import Cairo from 'cairo';
 import { createBundledIcon } from '../bundledIcons.js';
 import { WORKSPACE_MIME_TYPE } from '../config.js';
 import { getUserPreferences, sharePreferencesForSource } from '../preferences.js';
+import { exportEditedImage } from '../services/image-export.js';
 import { shareImage } from '../services/image-share.js';
 import { readImageWorkspace, writeImageWorkspace } from '../services/workspace-file.js';
 import { isManagedWorkspacePath, managedWorkspaceSavePath } from '../services/workspace-library.js';
@@ -21,6 +22,7 @@ import {
   pixbufHasTransparency,
   shareCanvasSize,
 } from '../share/renderer.js';
+import { presentExportDialog } from '../window.js';
 import * as DocumentModel from './document.js';
 import * as ImageRenderer from './renderer.js';
 import { createImageWorkspace, workspaceSourceBytes } from './workspace.js';
@@ -219,12 +221,6 @@ function basenameWithoutExtension(path) {
   return dot > 0 ? basename.slice(0, dot) : basename;
 }
 
-function ensurePngExtension(path) {
-  const normalized = String(path ?? '').trim();
-
-  return normalized.toLowerCase().endsWith('.png') ? normalized : `${normalized}.png`;
-}
-
 function isEditableFocus(widget) {
   for (let current = widget; current; current = current.get_parent?.()) {
     if (
@@ -376,6 +372,7 @@ export const ImageViewerWindow = GObject.registerClass(
       this._workspaceEtag = null;
       this._workspaceSourceMetadata = null;
       this._workspaceSavePending = false;
+      this._exportDialog = null;
       this._initialBackgroundEnabled = options.backgroundEnabled !== false;
       this._editedImageDirectory = options.editedImageDirectory ?? null;
       this._preferences = options.preferences ?? getUserPreferences();
@@ -737,7 +734,7 @@ export const ImageViewerWindow = GObject.registerClass(
 
       this._exportOutputButton = new Gtk.Button({
         label: 'Export…',
-        tooltip_text: 'Export the current edited image as PNG',
+        tooltip_text: 'Export the current image as PNG or JPEG (Ctrl+Shift+E)',
       });
       this._exportOutputButton.connect('clicked', () => this._saveCopy());
       this._saveOutputButton = new Gtk.Button({
@@ -1478,6 +1475,7 @@ export const ImageViewerWindow = GObject.registerClass(
       this._drawButton?.set_sensitive(enabled);
       this._cropButton?.set_sensitive(enabled);
       this._backgroundButton?.set_sensitive(enabled);
+      this._saveOutputButton?.set_label(this._workspaceSavePending ? 'Saving' : 'Save');
       this._saveOutputButton?.set_sensitive(enabled);
       this._exportOutputButton?.set_sensitive(enabled);
       this._shareOutputButton?.set_sensitive(enabled);
@@ -1568,6 +1566,8 @@ export const ImageViewerWindow = GObject.registerClass(
     _disposeResources() {
       if (this._disposed) return;
       this._disposed = true;
+      this._exportDialog?.dispose();
+      this._exportDialog = null;
       if (this._hostKeyController) {
         try {
           this._hostWindow().remove_controller(this._hostKeyController);
@@ -3245,62 +3245,40 @@ export const ImageViewerWindow = GObject.registerClass(
 
     _saveCopy() {
       if (!this._document || !this._source || this._busy) return;
+      if (this._exportDialog) {
+        this._exportDialog.present();
+        return;
+      }
       this._finishInlineTextEdit({ restoreFocus: false });
-      const pngFilter = new Gtk.FileFilter();
-      pngFilter.set_name('PNG Images');
-      pngFilter.add_mime_type('image/png');
-      pngFilter.add_pattern('*.png');
-      const filters = new Gio.ListStore({ item_type: Gtk.FileFilter });
-      filters.append(pngFilter);
-      const dialog = new Gtk.FileDialog({
-        title: this._backgroundEnabled ? 'Export Composed Image' : 'Save Edited Image',
-        initial_name: `${basenameWithoutExtension(this._image.path)}-${
+      this._exportDialog = presentExportDialog({
+        parent: this._hostWindow(),
+        kind: 'image',
+        stem: `${basenameWithoutExtension(this._image.path)}-${
           this._backgroundEnabled ? 'share' : 'edited'
-        }.png`,
-      });
-      dialog.set_filters(filters);
-      dialog.set_default_filter(pngFilter);
-      dialog.save(this._hostWindow(), null, (_dialog, result) => {
-        try {
-          const file = dialog.save_finish(result);
-          const selectedPath = file.get_path();
-
-          if (!selectedPath) throw new Error('Only local save paths are supported.');
-          const path = ensurePngExtension(selectedPath);
-          if (path !== selectedPath && GLib.file_test(path, GLib.FileTest.EXISTS)) {
-            throw new Error(
-              `A file named ${GLib.path_get_basename(path)} already exists. ` +
-                'Choose that .png filename directly to confirm replacing it.',
-            );
-          }
-          if (Gio.File.new_for_path(path).equal(Gio.File.new_for_path(this._image.path)))
-            throw new Error('Choose a new filename. Bolas never overwrites the original image.');
-
+        }`,
+        onClosed: () => {
+          this._exportDialog = null;
+        },
+        runExport: async (options) => {
           this._setBusy(true);
-          const saved = this._backgroundEnabled
-            ? ImageRenderer.exportCompositionPng(
-                this._source.pixbuf,
-                this._imageDocument,
-                this._canvasDocument,
-                {
-                  ...this._shareSettings,
-                  sourceHasTransparency: this._sourceHasTransparency,
-                },
-                path,
-                { sourcePath: this._image.path },
-              )
-            : ImageRenderer.exportDocumentPng(this._source.pixbuf, this._imageDocument, path, {
-                sourcePath: this._image.path,
-              });
-          const outputPath = saved?.path ?? path;
-          this._setBusy(false);
-          this._toast(`Exported ${GLib.path_get_basename(outputPath)}`);
-        } catch (error) {
-          if (isCancellation(error)) return;
-          this._setBusy(false);
-          logError(error, 'Failed to save edited image');
-          this._showError('Could Not Save Image', error.message);
-        }
+          try {
+            return await exportEditedImage({
+              ...options,
+              sourcePixbuf: this._source.pixbuf,
+              sourcePath: this._image.path,
+              imageDocument: this._imageDocument,
+              canvasDocument: this._canvasDocument,
+              share: this._backgroundEnabled
+                ? {
+                    ...this._shareSettings,
+                    sourceHasTransparency: this._sourceHasTransparency,
+                  }
+                : null,
+            });
+          } finally {
+            if (!this._disposed) this._setBusy(false);
+          }
+        },
       });
     }
 
@@ -3417,6 +3395,7 @@ export const ImageViewerWindow = GObject.registerClass(
     }
 
     _handleKey(keyval, state) {
+      if (this._exportDialog) return false;
       const control = (state & Gdk.ModifierType.CONTROL_MASK) !== 0;
       const shift = (state & Gdk.ModifierType.SHIFT_MASK) !== 0;
       const editableFocus = isEditableFocus(this._hostWindow().get_focus());
@@ -3456,6 +3435,10 @@ export const ImageViewerWindow = GObject.registerClass(
       }
       if (control && !shift && (keyval === Gdk.KEY_s || keyval === Gdk.KEY_S)) {
         this._saveWorkspace();
+        return true;
+      }
+      if (control && shift && (keyval === Gdk.KEY_e || keyval === Gdk.KEY_E)) {
+        this._saveCopy();
         return true;
       }
       if (

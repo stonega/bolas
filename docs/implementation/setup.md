@@ -20,7 +20,9 @@ Install JavaScript development tooling with `bun install`.
 The source launcher and `src/main.js` compile the application GSettings schema
 into `build/data` before launch. This keeps both `bun run run` and direct
 `gjs -m src/main.js` runs on the same persistent preference backend as installed
-and Flatpak builds.
+and Flatpak builds. Application startup also prepends `data/icons` to GTK's icon
+search paths for source runs, ensuring the repository's hicolor SVG takes
+precedence over an older installed icon. Installed builds keep normal theme lookup.
 
 ## Development loop
 
@@ -82,6 +84,12 @@ video marker visible.
 Run the complete local check with `bun run check`. It verifies Biome rules,
 configures or reconfigures Meson, compiles the project, runs deterministic tests,
 and validates the generated desktop entry when `desktop-file-validate` is present.
+
+The bundled-icon test verifies GTK lookup against a stale installed-icon fixture,
+renders the application SVG, and checks that the margin below the canvas stays
+transparent. Open **About Bolas** from the main menu and
+check the icon in light and dark appearance: neither the artwork nor the scoped
+`.bolas-about .icon-dropshadow` styling should cast a shadow.
 
 For an image-workspace check, open a still image from the chooser, command line,
 or media drawer. It must enter the editor directly with **Background** enabled

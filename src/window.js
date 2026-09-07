@@ -4,6 +4,7 @@ import Gio from 'gi://Gio?version=2.0';
 import GLib from 'gi://GLib?version=2.0';
 import GObject from 'gi://GObject?version=2.0';
 import Gtk from 'gi://Gtk?version=4.0';
+import Pango from 'gi://Pango?version=1.0';
 
 import {
   APP_NAME,
@@ -14,6 +15,7 @@ import {
   MEDIA_FOLDER_SIDEBAR_WIDTH_FRACTION,
   MEDIA_FOLDER_THUMBNAIL_ASPECT_RATIO,
 } from './config.js';
+import { EXPORT_FORMATS, exportPathForFormat } from './model/export.js';
 import { inspectMediaFile, inspectMediaPath } from './model/media-file.js';
 import {
   isSupportedImageName,
@@ -68,9 +70,197 @@ function actionButton(iconName, label, callback, suggested = false) {
 
 function isCancellation(error) {
   return Boolean(
-    error?.matches?.(Gtk.dialog_error_quark(), Gtk.DialogError.DISMISSED) ||
+    error?.cancelled ||
+      error?.matches?.(Gtk.dialog_error_quark(), Gtk.DialogError.DISMISSED) ||
       error?.matches?.(Gio.io_error_quark(), Gio.IOErrorEnum.CANCELLED),
   );
+}
+
+export function presentExportDialog({ parent, kind, stem, runExport, onClosed = null }) {
+  const formats = EXPORT_FORMATS[kind];
+  if (!formats) throw new Error('Choose an image or video to export.');
+  const dialog = new Adw.Dialog({
+    title: kind === 'video' ? 'Export Video' : 'Export Image',
+    content_width: 420,
+  });
+  const toolbar = new Adw.ToolbarView();
+  toolbar.add_top_bar(new Adw.HeaderBar());
+  const content = new Gtk.Box({
+    orientation: Gtk.Orientation.VERTICAL,
+    spacing: 18,
+    margin_start: 24,
+    margin_end: 24,
+    margin_top: 12,
+    margin_bottom: 24,
+  });
+  const group = new Adw.PreferencesGroup({ description: formats[0].description });
+  const formatRow = new Adw.ComboRow({
+    title: '_File Type',
+    use_underline: true,
+    model: Gtk.StringList.new(formats.map((format) => format.label)),
+  });
+  formatRow.connect('notify::selected', () =>
+    group.set_description(formats[formatRow.selected].description),
+  );
+  group.add(formatRow);
+  content.append(group);
+  const status = new Gtk.Label({
+    css_classes: ['caption', 'dim-label'],
+    xalign: 0,
+    wrap: true,
+    wrap_mode: Pango.WrapMode.WORD_CHAR,
+    visible: false,
+  });
+  const progress = new Gtk.ProgressBar({ show_text: true, visible: false });
+  progress.update_property([Gtk.AccessibleProperty.LABEL], ['Export progress']);
+  content.append(progress);
+  content.append(status);
+  const actions = new Gtk.Box({
+    orientation: Gtk.Orientation.HORIZONTAL,
+    height_request: 44,
+    spacing: 12,
+    homogeneous: true,
+  });
+  const cancel = new Gtk.Button({ label: 'Cancel' });
+  const submit = new Gtk.Button({ label: 'Export', css_classes: ['suggested-action'] });
+  actions.append(cancel);
+  actions.append(submit);
+  content.append(actions);
+  toolbar.set_content(content);
+  dialog.set_child(toolbar);
+  dialog.set_default_widget(submit);
+  dialog.set_focus(formatRow);
+
+  let active = null;
+  let closed = false;
+  let complete = false;
+  let closeAfterCancel = false;
+  let pulseId = 0;
+  const stopPulse = () => {
+    if (pulseId) GLib.source_remove(pulseId);
+    pulseId = 0;
+  };
+  const report = ({ fraction, message }) => {
+    if (closed || active?.is_cancelled()) return;
+    status.set_label(message);
+    status.set_visible(true);
+    progress.set_visible(true);
+    if (fraction === null) {
+      progress.set_text('');
+      if (!pulseId)
+        pulseId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+          progress.pulse();
+          return GLib.SOURCE_CONTINUE;
+        });
+    } else {
+      stopPulse();
+      progress.set_fraction(fraction);
+      progress.set_text(`${Math.floor(fraction * 100)}%`);
+    }
+  };
+  const cancelExport = () => {
+    if (!active) {
+      dialog.close();
+      return;
+    }
+    closeAfterCancel = true;
+    active.cancel();
+    stopPulse();
+    status.set_label('Cancelling export…');
+    status.set_visible(true);
+    cancel.set_sensitive(false);
+  };
+  cancel.connect('clicked', cancelExport);
+  dialog.connect('close-attempt', cancelExport);
+  dialog.connect('closed', () => {
+    closed = true;
+    active?.cancel();
+    stopPulse();
+    onClosed?.();
+  });
+  submit.connect('clicked', async () => {
+    if (complete) {
+      dialog.close();
+      return;
+    }
+    if (active) return;
+    const format = formats[formatRow.selected];
+    active = new Gio.Cancellable();
+    dialog.set_can_close(false);
+    formatRow.set_sensitive(false);
+    submit.set_sensitive(false);
+    status.remove_css_class('error');
+    status.set_label('Choose where to save the export.');
+    status.set_visible(true);
+    progress.set_visible(false);
+    progress.set_fraction(0);
+    const filter = new Gtk.FileFilter({
+      name: `${format.label} ${kind === 'image' ? 'Images' : 'Videos'}`,
+    });
+    filter.add_mime_type(format.mimeType);
+    filter.add_pattern(`*.${format.extension}`);
+    if (format.id === 'jpeg') filter.add_pattern('*.jpeg');
+    const filters = new Gio.ListStore({ item_type: Gtk.FileFilter });
+    filters.append(filter);
+    const chooser = new Gtk.FileDialog({
+      title: dialog.title,
+      initial_name: `${stem}.${format.extension}`,
+      filters,
+      default_filter: filter,
+      modal: true,
+    });
+    try {
+      const file = await new Promise((resolve, reject) => {
+        chooser.save(parent, active, (source, result) => {
+          try {
+            resolve(source.save_finish(result));
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
+      if (active.is_cancelled()) return;
+      const selectedPath = file.get_path();
+      if (!selectedPath) throw new Error('Choose a local folder for the export.');
+      const targetPath = exportPathForFormat(selectedPath, format);
+      report({ fraction: null, message: 'Preparing export…' });
+      await runExport({ targetPath, format: format.id, cancellable: active, onProgress: report });
+      if (closed) return;
+      report({ fraction: 1, message: `Exported ${GLib.path_get_basename(targetPath)}` });
+      complete = true;
+      cancel.set_visible(false);
+      submit.set_label('Done');
+    } catch (error) {
+      if (closed) return;
+      progress.set_visible(false);
+      if (isCancellation(error) || active.is_cancelled()) status.set_label('Export cancelled.');
+      else {
+        status.set_label(error.message || 'Export failed. Try again.');
+        status.add_css_class('error');
+      }
+    } finally {
+      stopPulse();
+      active = null;
+      if (!closed) {
+        dialog.set_can_close(true);
+        formatRow.set_sensitive(!complete);
+        submit.set_sensitive(true);
+        cancel.set_sensitive(true);
+        if (closeAfterCancel) dialog.close();
+        else submit.grab_focus();
+      }
+    }
+  });
+  dialog.present(parent);
+  return {
+    present: () => dialog.present(parent),
+    dispose: () => {
+      active?.cancel();
+      stopPulse();
+      closed = true;
+      dialog.force_close();
+    },
+  };
 }
 
 function recentWorkspaceDateLabel(modifiedSeconds) {

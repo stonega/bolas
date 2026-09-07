@@ -44,6 +44,11 @@ that backup before retrying.
 
 ## Open and capture
 
+Choose **About Bolas** from the main menu to see the application version and its
+shadow-free icon with GNOME-style window controls. When running from source,
+restart Bolas after updating its code or artwork; the About dialog uses the icon
+from that checkout.
+
 Open Bolas and choose **Take Screenshot** (or press Ctrl+Shift+S) to use the
 desktop's screen, window, or area chooser. The captured image opens directly in
 the image workspace. Existing still images opened from the chooser, command

@@ -133,6 +133,14 @@ test(
 )
 
 test(
+  'image-export',
+  gjs,
+  args: ['-m', files('test-image-export.js')],
+  suite: 'integration',
+  timeout: 30,
+)
+
+test(
   'video-thumbnail',
   gjs,
   args: ['-m', files('test-video-thumbnail.js')],
