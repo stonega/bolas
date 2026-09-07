@@ -14,6 +14,7 @@
 - Add an image-composer screenshot to the README and document the export workflow.
 - Install the SVG loader explicitly in the minimal Debian packaging environment
   so application-icon rendering checks pass in CI.
+- Keep source-launch icon priority correct with GTK 4.18's reverse search order.
 
 ## [0.1.1] - 2026-09-06
 

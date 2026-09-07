@@ -44,10 +44,15 @@ function checkSourceIconLookup(appIconFile) {
       theme.lookup_icon(APP_ID, [], 128, 1, Gtk.TextDirection.NONE, 0).get_file();
     assert(lookup().get_path() === staleIconPath, 'The installed-icon fixture was not selected');
     assert(configureSourceIcons(theme), 'The source icon directory was not registered');
-    assert(lookup().equal(appIconFile), 'GTK still resolves the stale installed icon');
+    const sourceIcon = lookup();
+    assert(
+      sourceIcon.equal(appIconFile),
+      `GTK resolves ${sourceIcon.get_path()} instead of ${appIconFile.get_path()}`,
+    );
     configureSourceIcons(theme);
     assert(theme.get_search_path().length === 2, 'Repeated registration duplicates search paths');
-    assert(theme.get_search_path()[1] === root, 'The installed icon search path was lost');
+    assert(theme.get_search_path().includes(root), 'The installed icon search path was lost');
+    assert(lookup().equal(appIconFile), 'Repeated registration changed source icon priority');
     assert(
       !configureSourceIcons(
         theme,

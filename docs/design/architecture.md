@@ -36,6 +36,8 @@ shadow filters, and the About dialog suppresses the theme's icon shadow for a
 clean, shadow-free presentation.
 Source launches prepend `data/icons` to GTK's icon search paths so About uses the
 current repository artwork even when an older Bolas package is installed.
+It verifies the resolved icon and appends the source path instead when GTK uses
+reverse directory precedence, as in GTK 4.18. Existing theme paths remain available.
 
 ## Runtime modules
 

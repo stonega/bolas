@@ -1,6 +1,8 @@
 import Gio from 'gi://Gio?version=2.0';
 import Gtk from 'gi://Gtk?version=4.0';
 
+import { APP_ID } from './config.js';
+
 export function configureSourceIcons(iconTheme, moduleUrl = import.meta.url) {
   const directory = Gio.File.new_for_uri(moduleUrl)
     .get_parent()
@@ -9,10 +11,14 @@ export function configureSourceIcons(iconTheme, moduleUrl = import.meta.url) {
   if (!directory.query_exists(null)) return false;
 
   const path = directory.get_path();
-  iconTheme.set_search_path([
-    path,
-    ...iconTheme.get_search_path().filter((entry) => entry !== path),
-  ]);
+  const existingPaths = iconTheme.get_search_path().filter((entry) => entry !== path);
+  iconTheme.set_search_path([path, ...existingPaths]);
+
+  // GTK 4.18 scans duplicate theme directories in reverse search-path order.
+  // Check the resolved icon so distribution backports need no version checks.
+  const sourceIcon = directory.get_child(`hicolor/scalable/apps/${APP_ID}.svg`);
+  const resolved = iconTheme.lookup_icon(APP_ID, [], 128, 1, Gtk.TextDirection.NONE, 0);
+  if (!resolved.get_file()?.equal(sourceIcon)) iconTheme.set_search_path([...existingPaths, path]);
   return true;
 }
 
