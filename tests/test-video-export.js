@@ -15,6 +15,35 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+function hasWorkingH264Encoder() {
+  // Fedora's noopenh264 library advertises an encoder but cannot encode frames.
+  return ['libx264', 'libopenh264'].some((encoder) => {
+    const probe = Gio.Subprocess.new(
+      [
+        'ffmpeg',
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        '-nostdin',
+        '-f',
+        'lavfi',
+        '-i',
+        'color=size=32x32:rate=1',
+        '-frames:v',
+        '1',
+        '-c:v',
+        encoder,
+        '-f',
+        'null',
+        '-',
+      ],
+      Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE,
+    );
+    probe.wait(null);
+    return probe.get_successful();
+  });
+}
+
 Gst.init(null);
 const root = GLib.build_filenamev([
   GLib.get_tmp_dir(),
@@ -119,32 +148,65 @@ try {
   });
   const audioInfo = discoverer.discover_uri(Gio.File.new_for_path(audioOutputPath).get_uri());
   assert(audioInfo.get_audio_streams().length === 1, 'unmuted output must retain audio');
-  const mp4 = await exportEditedVideo({
+  const mp4Options = {
     durationUs: 1_200_000,
     edit: { muted: false, speed: 1.5, trimStartUs: 300_000, trimEndUs: 900_000 },
     format: 'mp4',
     sourcePath,
     targetPath: mp4OutputPath,
-  });
-  assert(mp4.mimeType === 'video/mp4', 'MP4 MIME type is incorrect');
-  const probe = Gio.Subprocess.new(
-    ['ffprobe', '-v', 'error', '-show_streams', '-show_format', '-of', 'json', mp4OutputPath],
-    Gio.SubprocessFlags.STDOUT_PIPE,
-  );
-  const [, probeOutput] = probe.communicate_utf8(null, null);
-  const metadata = JSON.parse(probeOutput);
-  assert(
-    metadata.streams.some((stream) => stream.codec_name === 'h264'),
-    'MP4 video codec is incorrect',
-  );
-  assert(
-    metadata.streams.some((stream) => stream.codec_name === 'aac'),
-    'MP4 audio codec is incorrect',
-  );
-  assert(
-    Number(metadata.format.duration) >= 0.35 && Number(metadata.format.duration) <= 0.55,
-    'MP4 trim/speed was lost',
-  );
+  };
+  if (hasWorkingH264Encoder()) {
+    const mp4 = await exportEditedVideo(mp4Options);
+    assert(mp4.mimeType === 'video/mp4', 'MP4 MIME type is incorrect');
+    const probe = Gio.Subprocess.new(
+      ['ffprobe', '-v', 'error', '-show_streams', '-show_format', '-of', 'json', mp4OutputPath],
+      Gio.SubprocessFlags.STDOUT_PIPE,
+    );
+    const [, probeOutput] = probe.communicate_utf8(null, null);
+    assert(probe.get_successful(), 'could not inspect the MP4 output');
+    const metadata = JSON.parse(probeOutput);
+    assert(
+      metadata.streams.some((stream) => stream.codec_name === 'h264'),
+      'MP4 video codec is incorrect',
+    );
+    assert(
+      metadata.streams.some((stream) => stream.codec_name === 'aac'),
+      'MP4 audio codec is incorrect',
+    );
+    assert(
+      Number(metadata.format.duration) >= 0.35 && Number(metadata.format.duration) <= 0.55,
+      'MP4 trim/speed was lost',
+    );
+    print('MP4 H.264/AAC export is valid');
+  } else {
+    let encoderError = null;
+    try {
+      await exportEditedVideo(mp4Options);
+    } catch (error) {
+      encoderError = error;
+    }
+    assert(
+      /H\.264 encoder|MP4 encoding/.test(encoderError?.message ?? ''),
+      'missing H.264 support must report an encoding error',
+    );
+    assert(
+      !GLib.file_test(mp4OutputPath, GLib.FileTest.EXISTS),
+      'failed MP4 export must not publish an output file',
+    );
+    const children = Gio.File.new_for_path(root).enumerate_children(
+      'standard::name',
+      Gio.FileQueryInfoFlags.NONE,
+      null,
+    );
+    try {
+      for (let child = children.next_file(null); child; child = children.next_file(null))
+        assert(!child.get_name().startsWith('.export.mp4.'), 'failed MP4 staging was not removed');
+    } finally {
+      children.close(null);
+    }
+    print('H.264 is unavailable; MP4 failure and cleanup are valid');
+    GLib.file_set_contents(mp4OutputPath, 'existing destination');
+  }
   let refused = false;
   try {
     await exportEditedVideo({

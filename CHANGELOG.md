@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3] - 2026-09-07
+
+- Support Fedora COPR's optional H.264 codec environment in the video-export
+  tests, verifying export failure and cleanup when only noopenh264 is installed.
+- Keep full MP4 codec, audio, trim, and speed checks on systems with a working
+  encoder; all WebM and destination-protection checks run in both environments.
+
 ## [0.1.2] - 2026-09-07
 
 - License Bolas under GPL-3.0-or-later and add Fedora COPR source packaging.

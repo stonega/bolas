@@ -48,8 +48,10 @@ The worker and new service/model modules are included in the Meson installation.
 Run `bun run check` for deterministic and integration checks. The image test
 compares output against the live renderer, exercises JPEG transparency,
 cancellation, progress, main-loop responsiveness, and destination protection.
-Video tests render both containers, inspect codecs and audio, and verify edited
-duration and progress. Native UI smoke checks remain separate from these tests.
+Video tests render both containers where H.264 encoding is available, inspect
+codecs and audio, and verify edited duration and progress. On systems with only
+Fedora's `noopenh264` placeholder, they verify MP4 failure and cleanup instead;
+WebM tests always run. Native UI smoke checks remain separate from these tests.
 
 Runnable service examples:
 

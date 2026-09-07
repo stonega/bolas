@@ -30,6 +30,10 @@ These commands install the required GNOME libraries and media tools. Start
 backend is needed for screenshot capture. Additional video formats may require
 your distribution's optional GStreamer codecs.
 
+MP4 export also requires a working FFmpeg H.264 encoder. Fedora's `noopenh264`
+placeholder does not provide one. Install OpenH264 from Fedora's Cisco OpenH264
+repository, or choose WebM when H.264 support is unavailable.
+
 ## Bolas is missing from the application grid
 
 An old development launcher can override the installed package's desktop entry.

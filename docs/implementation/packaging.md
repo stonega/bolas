@@ -43,8 +43,8 @@ bash scripts/package.sh
 bash tests/test-packages.sh
 ```
 
-Outputs for version 0.1.2 are `dist/bolas_0.1.2_all.deb`,
-`dist/bolas-0.1.2-1.noarch.rpm`, and `dist/SHA256SUMS`. Each build uses a fresh
+Outputs for version 0.1.3 are `dist/bolas_0.1.3_all.deb`,
+`dist/bolas-0.1.3-1.noarch.rpm`, and `dist/SHA256SUMS`. Each build uses a fresh
 temporary directory and cleans it on exit; it does not reuse `build/` or
 include repository files outside Meson's installation list.
 
@@ -53,7 +53,7 @@ Versions come from Meson's project metadata and must use numeric
 `src/config.js`. On tag builds, the tag must equal `v` plus that version:
 
 ```sh
-bash scripts/package.sh v0.1.2
+bash scripts/package.sh v0.1.3
 ```
 
 Branch, pull-request, and manual builds use the project version unchanged.
@@ -104,6 +104,14 @@ Meson's Fedora RPM macros, runs the deterministic test suite, and validates
 desktop metadata and schemas. Its initial version is 0.1.2. Release sources
 include the GPL license text; COPR rebuilds the application using each target's
 distribution dependencies.
+
+Fedora build roots install `noopenh264`, which exposes the OpenH264 interface
+without encoding H.264. The integration test probes a synthetic frame before
+the MP4 round trip. When neither H.264 encoder works, it instead verifies an
+encoding error, no published output, staging cleanup, and destination protection.
+Full MP4 round trips still run on codec-equipped hosts and in Debian CI; all
+WebM tests run everywhere. See the
+[initial build incident](../../postmortem/2026-09-07-copr-optional-h264.md).
 
 After validating the packages and pushing the matching release tag, submit with:
 
