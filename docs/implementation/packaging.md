@@ -49,8 +49,8 @@ bash scripts/package.sh
 bash tests/test-packages.sh
 ```
 
-Outputs for version 0.1.3 are `dist/bolas_0.1.3_all.deb`,
-`dist/bolas-0.1.3-1.noarch.rpm`, and `dist/SHA256SUMS`. Each build uses a fresh
+Outputs for version 0.1.4 are `dist/bolas_0.1.4_all.deb`,
+`dist/bolas-0.1.4-1.noarch.rpm`, and `dist/SHA256SUMS`. Each build uses a fresh
 temporary directory and cleans it on exit; it does not reuse `build/` or
 include repository files outside Meson's installation list.
 
@@ -59,7 +59,7 @@ Versions come from Meson's project metadata and must use numeric
 `src/config.js`. On tag builds, the tag must equal `v` plus that version:
 
 ```sh
-bash scripts/package.sh v0.1.3
+bash scripts/package.sh v0.1.4
 ```
 
 Branch, pull-request, and manual builds use the project version unchanged.

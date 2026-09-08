@@ -1,5 +1,5 @@
 Name:           bolas
-Version:        0.1.3
+Version:        0.1.4
 Release:        1%{?dist}
 Summary:        Native GNOME screenshot and video editor
 
@@ -76,6 +76,10 @@ glib-compile-schemas --strict --dry-run \
 %{_datadir}/icons/hicolor/scalable/apps/io.github.stonega.Bolas.svg
 
 %changelog
+* Tue Sep 08 2026 Bolas maintainers <noreply@github.com> - 0.1.4-1
+- Fix installed launcher stalling workspace Save and image Export
+- Test workspace persistence and PNG/JPEG export through the generated launcher
+
 * Mon Sep 07 2026 Bolas maintainers <noreply@github.com> - 0.1.3-1
 - Test missing H.264 support in Fedora's noopenh264 build environment
 

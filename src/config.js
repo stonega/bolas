@@ -1,6 +1,6 @@
 export const APP_ID = 'io.github.stonega.Bolas';
 export const APP_NAME = 'Bolas';
-export const APP_VERSION = '0.1.3';
+export const APP_VERSION = '0.1.4';
 export const WORKSPACE_EXTENSION = '.bolas';
 export const WORKSPACE_MIME_TYPE = 'application/vnd.io.github.stonega.bolas.workspace';
 export const DEFAULT_WINDOW_WIDTH = 1120;

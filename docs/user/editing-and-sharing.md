@@ -76,9 +76,9 @@ until saving finishes. It then returns to **Save**. No separate Cancel Save butt
 appears.
 
 If an older installed package stays on **Saving**, or Export stops after choosing
-a destination, install a build containing the launcher Save/Export fix and restart
-Bolas. This startup bug also affects other asynchronous operations. Workspace
-and export permissions do not need to be changed.
+a destination, update to Bolas 0.1.4 or later and restart Bolas. This startup bug
+also affects other asynchronous operations. Workspace and export permissions do
+not need to be changed.
 
 Bolas remembers the annotation tool, color, line and text sizes, fill setting,
 crop ratio, and crop orientation. It also restores the last background, canvas

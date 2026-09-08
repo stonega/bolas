@@ -39,5 +39,5 @@ or codec change is required.
   images. A deadline turns a stalled continuation into a deterministic failure.
 - Run that same check against both extracted native packages; include the
   generated-launcher check in the Meson suite used by COPR release builds.
-- Include the fix in the next package release and restart affected installations
-  after updating. Previously saved workspaces remain compatible.
+- Version 0.1.4 includes the fix. Restart affected installations after updating;
+  previously saved workspaces remain compatible.

@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.4] - 2026-09-08
 
 - Fix installed applications stalling during workspace Save and image Export by
   loading the application through a static module import.
