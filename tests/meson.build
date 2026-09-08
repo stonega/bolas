@@ -141,6 +141,14 @@ test(
 )
 
 test(
+  'installed-launcher',
+  gjs,
+  args: ['-m', files('test-installed-launcher.js'), launcher, meson.project_source_root() / 'src'],
+  suite: 'integration',
+  timeout: 30,
+)
+
+test(
   'video-thumbnail',
   gjs,
   args: ['-m', files('test-video-thumbnail.js')],

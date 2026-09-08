@@ -66,6 +66,11 @@ main.js
 
 Stable identifiers and window defaults live in `config.js`, which is deliberately
 free of GTK imports and can be tested without starting a display server.
+The installed launcher statically imports `main.js`. Dynamic import would keep
+module evaluation pending while `Gio.Application.run()` runs its synchronous
+main loop, preventing Promise continuations in Save, Export, and other desktop
+operations from resuming. Source and installed launches must preserve the same
+asynchronous behavior.
 Durable editor and image-composition choices live behind `preferences.js`, which
 validates the supported values and stores them with the application GSettings
 schema. Widgets remember an option when the user changes its control and restore

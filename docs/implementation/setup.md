@@ -185,8 +185,9 @@ typed content. The exported WebM must match this complete-canvas preview.
 - `share/dbus-1/services/`: GApplication D-Bus activation entry
 - `share/icons/hicolor/scalable/apps/`: application icon
 
-The launcher receives the installed module URI at Meson configure time. Source
-development invokes `src/main.js` directly.
+The launcher receives the installed module URI at Meson configure time and
+imports it statically so Promise-based Save and Export operations can resume
+while the application runs. Source development invokes `src/main.js` directly.
 
 ## Flatpak
 

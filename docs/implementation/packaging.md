@@ -6,6 +6,12 @@ WebM retains VP9/Opus. The export dialog reports missing encoder support and
 allows another format to be selected. The image export worker uses the existing
 GJS, Cairo, and GdkPixbuf dependencies and is installed with the service modules.
 
+The generated `bin/bolas` launcher uses a static import of the installed
+`main.js`. Do not wrap it in `await import(...)`: its synchronous application
+main loop would run inside an unfinished dynamic import, starving Promise
+continuations. That left Save stuck on Saving and Export waiting after the file
+chooser in affected packages, even though direct source tests passed.
+
 `.github/workflows/build-packages.yml` follows Cusco's staged-install approach:
 Meson installs to a private directory under `/usr`, then `dpkg-deb` and
 `rpmbuild` package that identical payload. The build runs in Debian 13
@@ -82,6 +88,15 @@ application ID and checks that it is visible in GNOME, uses the installed
 launcher, and names the bundled icon. The process uses temporary XDG user-data
 and configuration directories, so user launcher overrides cannot mask a
 packaging failure or make the check depend on a live desktop session.
+
+The `installed-launcher` Meson integration test runs the generated launcher with
+a headless main-loop fixture, a synthetic image, and temporary output paths. It
+keeps the launcher's import statement intact and verifies workspace creation,
+reopening, updating, and completed PNG/JPEG exports before a fixed deadline.
+Package verification repeats the test against each extracted package's launcher
+and service modules. The Meson check also runs in COPR when it builds release
+sources containing this test. No desktop dialog or existing user workspace is
+involved.
 
 User desktop entries take precedence over system packages. An obsolete
 development entry with the same application ID can hide a correct installation;

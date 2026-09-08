@@ -85,5 +85,7 @@ for format in deb rpm; do
     XDG_CURRENT_DESKTOP=GNOME \
     PATH="$package_root/usr/bin:$PATH" \
     gjs -m "$repo_root/tests/check-installed-desktop.js"
+  gjs -m "$repo_root/tests/test-installed-launcher.js" \
+    "$package_root/usr/bin/bolas" "$package_root/usr/share/bolas"
 done
-printf 'Package metadata, payloads, launcher, and desktop integration passed.\n'
+printf 'Package metadata, payloads, launcher Save/Export, and desktop integration passed.\n'

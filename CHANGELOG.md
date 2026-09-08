@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+- Fix installed applications stalling during workspace Save and image Export by
+  loading the application through a static module import.
+- Exercise workspace saving and PNG/JPEG export through the generated and packaged
+  launchers, including the Meson suite used by Fedora COPR.
+
 ## [0.1.3] - 2026-09-07
 
 - Support Fedora COPR's optional H.264 codec environment in the video-export
