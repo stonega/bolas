@@ -1,6 +1,6 @@
 project(
   'bolas',
-  version: '0.1.4',
+  version: '0.1.5',
   license: 'GPL-3.0-or-later',
   license_files: 'LICENSE',
   meson_version: '>= 1.2.0',

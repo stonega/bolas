@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.5] - 2026-09-16
+
+- Publish a version-only maintenance release of the 0.1.4 application code.
+- Update application and native package metadata to 0.1.5; application behavior
+  and workspace formats are unchanged.
+
 ## [0.1.4] - 2026-09-08
 
 - Fix installed applications stalling during workspace Save and image Export by
